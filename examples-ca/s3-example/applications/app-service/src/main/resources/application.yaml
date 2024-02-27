@@ -1,0 +1,33 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: "s3-example"
+  devtools:
+    add-properties: false
+  profiles:
+    include: null
+
+management:
+  endpoint:
+    health:
+      enabled: true
+      show-details: never
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health, liveness, readiness
+      base-path: /
+      path-mapping:
+        health: health
+        liveness: liveness
+        readiness: readiness
+
+adapter:
+  aws:
+    s3:
+      bucketName: "testbucket"
+      region: "us-east-1"
+      endpoint: "https://s3.localhost.localstack.cloud:4566"

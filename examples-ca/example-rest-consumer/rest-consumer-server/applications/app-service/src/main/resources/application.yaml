@@ -1,0 +1,27 @@
+##Spring Configuration
+server:
+  port: 8081
+spring:
+  application:
+    name: rest-consumer-server
+  devtools:
+    add-properties: false
+  profiles:
+    include:
+
+management:
+  endpoint:
+    health:
+      enabled: true
+      show-details: never
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health, liveness, readiness
+      base-path: /
+      path-mapping:
+        health: health
+        liveness: liveness
+        readiness: readiness

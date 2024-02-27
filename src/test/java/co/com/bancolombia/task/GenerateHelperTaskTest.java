@@ -1,82 +1,79 @@
 package co.com.bancolombia.task;
 
-import static org.junit.Assert.assertTrue;
+import static co.com.bancolombia.TestUtils.assertFilesExistsInDir;
+import static co.com.bancolombia.TestUtils.createTask;
+import static co.com.bancolombia.TestUtils.deleteStructure;
+import static co.com.bancolombia.TestUtils.getTask;
+import static co.com.bancolombia.TestUtils.getTestDir;
+import static co.com.bancolombia.TestUtils.setupProject;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import co.com.bancolombia.exceptions.CleanException;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Writer;
+import java.nio.file.Path;
 import org.gradle.api.Project;
 import org.gradle.testfixtures.ProjectBuilder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-public class GenerateHelperTaskTest {
-  private GenerateHelperTask task;
+class GenerateHelperTaskTest {
+  private static final String TEST_DIR = getTestDir(GenerateHelperTaskTest.class);
+  private static GenerateHelperTask task;
 
-  @Before
-  public void init() throws IOException, CleanException {
-    setup(GenerateStructureTask.ProjectType.IMPERATIVE);
-  }
+  @BeforeAll
+  public static void setup() throws IOException, CleanException {
+    deleteStructure(Path.of(TEST_DIR));
+    Project project = setupProject(GenerateHelperTaskTest.class, GenerateStructureTask.class);
 
-  private void setup(GenerateStructureTask.ProjectType type) throws IOException, CleanException {
-    Project project = ProjectBuilder.builder().withProjectDir(new File("build/unitTest")).build();
+    GenerateStructureTask taskStructure = getTask(project, GenerateStructureTask.class);
+    taskStructure.setType(GenerateStructureTask.ProjectType.REACTIVE);
+    taskStructure.setLanguage(GenerateStructureTask.Language.JAVA);
+    taskStructure.execute();
 
     ProjectBuilder.builder()
         .withName("app-service")
-        .withProjectDir(new File("build/unitTest/applications/app-service"))
+        .withProjectDir(new File(TEST_DIR + "/applications/app-service"))
         .withParent(project)
         .build();
 
-    project.getTasks().create("ca", GenerateStructureTask.class);
-    GenerateStructureTask taskStructure =
-        (GenerateStructureTask) project.getTasks().getByName("ca");
-    taskStructure.setType(type);
-    taskStructure.generateStructureTask();
+    task = createTask(project, GenerateHelperTask.class);
+  }
 
-    project.getTasks().create("test", GenerateHelperTask.class);
-    task = (GenerateHelperTask) project.getTasks().getByName("test");
+  @AfterAll
+  public static void tearDown() {
+    deleteStructure(Path.of(TEST_DIR));
   }
 
   // Assert
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldHandleErrorWhenNoName() throws IOException, CleanException {
+  @Test
+  void shouldHandleErrorWhenNoName() {
 
     // Act
-    task.generateHelperTask();
+    assertThrows(IllegalArgumentException.class, () -> task.execute());
   }
 
   // Assert
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldHandleErrorWhenEmptyName() throws IOException, CleanException {
+  @Test
+  void shouldHandleErrorWhenEmptyName() {
     // Arrange
     task.setName("");
     // Act
-    task.generateHelperTask();
+    assertThrows(IllegalArgumentException.class, () -> task.execute());
   }
 
   @Test
-  public void generateHelperGeneric() throws IOException, CleanException {
+  void generateHelperGeneric() throws IOException, CleanException {
     // Arrange
     task.setName("MyHelper");
     // Act
-    task.generateHelperTask();
+    task.execute();
     // Assert
-    assertTrue(new File("build/unitTest/infrastructure/helpers/my-helper/build.gradle").exists());
-    assertTrue(
-        new File(
-                "build/unitTest/infrastructure/helpers/my-helper/src/main/java/co/com/bancolombia/myhelper")
-            .exists());
-    assertTrue(
-        new File(
-                "build/unitTest/infrastructure/helpers/my-helper/src/test/java/co/com/bancolombia/myhelper")
-            .exists());
-  }
-
-  private void writeString(File file, String string) throws IOException {
-    try (Writer writer = new FileWriter(file)) {
-      writer.write(string);
-    }
+    assertFilesExistsInDir(
+        TEST_DIR + "/infrastructure/helpers/my-helper/",
+        "build.gradle",
+        "src/main/java/co/com/bancolombia/myhelper",
+        "src/test/java/co/com/bancolombia/myhelper");
   }
 }

@@ -1,0 +1,35 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: "mongoExample"
+  devtools:
+    add-properties: false
+  profiles:
+    include: null
+  data:
+    mongodb:
+      authentication-database: admin
+      username: root
+      password: example
+      database: orders
+      port: 27017
+      host: localhost
+
+management:
+  endpoint:
+    health:
+      enabled: true
+      show-details: never
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health, liveness, readiness
+      base-path: /
+      path-mapping:
+        health: health
+        liveness: liveness
+        readiness: readiness

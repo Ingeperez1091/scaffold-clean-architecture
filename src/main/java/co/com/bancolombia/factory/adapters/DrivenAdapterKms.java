@@ -1,10 +1,12 @@
 package co.com.bancolombia.factory.adapters;
 
+import static co.com.bancolombia.Constants.APP_SERVICE;
 import static co.com.bancolombia.utils.Utils.buildImplementationFromProject;
 
 import co.com.bancolombia.exceptions.CleanException;
 import co.com.bancolombia.factory.ModuleBuilder;
 import co.com.bancolombia.factory.ModuleFactory;
+import co.com.bancolombia.factory.commons.GenericModule;
 import java.io.IOException;
 import org.gradle.api.logging.Logger;
 
@@ -15,17 +17,19 @@ public class DrivenAdapterKms implements ModuleFactory {
     Logger logger = builder.getProject().getLogger();
     String typePath = getPathType(builder.isReactive());
     logger.lifecycle("Generating {}", typePath);
+
+    GenericModule.addAwsBom(builder);
     builder.setupFromTemplate("driven-adapter/" + typePath);
     builder.appendToSettings("kms-repository", "infrastructure/driven-adapters");
     builder
-        .appendToProperties("adapter.aws.kms")
+        .appendToProperties("adapters.aws.kms")
         .put("region", "us-east-1")
         .put("host", "localhost")
         .put("protocol", "http")
         .put("port", "4566")
         .put("keyId", "add-your-key-here"); // implementation project('kms-repository')
     String dependency = buildImplementationFromProject(builder.isKotlin(), ":kms-repository");
-    builder.appendDependencyToModule("app-service", dependency);
+    builder.appendDependencyToModule(APP_SERVICE, dependency);
     new DrivenAdapterSecrets().buildModule(builder);
   }
 

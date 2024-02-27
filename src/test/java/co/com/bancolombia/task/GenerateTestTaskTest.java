@@ -1,110 +1,69 @@
 package co.com.bancolombia.task;
 
-import static org.junit.Assert.assertTrue;
+import static co.com.bancolombia.TestUtils.assertFilesExistsInDir;
+import static co.com.bancolombia.TestUtils.createTask;
+import static co.com.bancolombia.TestUtils.deleteStructure;
+import static co.com.bancolombia.TestUtils.getTask;
+import static co.com.bancolombia.TestUtils.getTestDir;
+import static co.com.bancolombia.TestUtils.setupProject;
 
 import co.com.bancolombia.exceptions.CleanException;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Writer;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
-import org.apache.commons.io.file.SimplePathVisitor;
 import org.gradle.api.Project;
 import org.gradle.testfixtures.ProjectBuilder;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-public class GenerateTestTaskTest {
+class GenerateTestTaskTest {
+  private static final String TEST_DIR = getTestDir(GenerateTestTaskTest.class);
 
-  GenerateAcceptanceTestTask task;
-  static Project project =
-      ProjectBuilder.builder().withProjectDir(new File("build/unitTest")).build();
+  private static GenerateAcceptanceTestTask task;
 
-  @Before
-  public void init() throws IOException, CleanException {
-    setup(GenerateStructureTask.ProjectType.IMPERATIVE);
-  }
+  @BeforeAll
+  public static void setup() throws IOException, CleanException {
+    deleteStructure(Path.of(TEST_DIR));
+    Project project = setupProject(GenerateTestTaskTest.class, GenerateStructureTask.class);
 
-  @AfterClass
-  public static void clean() {
-    deleteStructure(project.getProjectDir().toPath());
-  }
-
-  public void setup(GenerateStructureTask.ProjectType type) throws IOException, CleanException {
-    deleteStructure(project.getProjectDir().toPath());
-    project.getTasks().create("ca", GenerateStructureTask.class);
-    GenerateStructureTask caTask = (GenerateStructureTask) project.getTasks().getByName("ca");
-    caTask.setType(type);
-    caTask.generateStructureTask();
+    GenerateStructureTask taskStructure = getTask(project, GenerateStructureTask.class);
+    taskStructure.setType(GenerateStructureTask.ProjectType.REACTIVE);
+    taskStructure.setLanguage(GenerateStructureTask.Language.JAVA);
+    taskStructure.execute();
 
     ProjectBuilder.builder()
-        .withProjectDir(new File("build/unitTest/applications/app-service"))
         .withName("app-service")
+        .withProjectDir(new File(TEST_DIR + "/applications/app-service"))
         .withParent(project)
         .build();
 
-    project.getTasks().create("test", GenerateAcceptanceTestTask.class);
-    task = (GenerateAcceptanceTestTask) project.getTasks().getByName("test");
+    task = createTask(project, GenerateAcceptanceTestTask.class);
   }
 
-  private static void deleteStructure(Path sourcePath) {
-    try {
-      Files.walkFileTree(
-          sourcePath,
-          new SimplePathVisitor() {
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException e) throws IOException {
-              Files.delete(dir);
-              return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs)
-                throws IOException {
-              Files.delete(file);
-              return FileVisitResult.CONTINUE;
-            }
-          });
-    } catch (IOException e) {
-      System.out.println("error delete Structure " + e.getMessage());
-    }
+  @AfterAll
+  public static void tearDown() {
+    deleteStructure(Path.of(TEST_DIR));
   }
 
   @Test
-  public void generateAcceptanceTest() throws IOException, CleanException {
-
-    task.generateAcceptanceTestTask();
-
-    assertTrue(
-        new File(
-                "build/unitTest/deployment/acceptance-test/src/test/java/co/com/bancolombia/TestParallel.java")
-            .exists());
-    assertTrue(
-        new File(
-                "build/unitTest/deployment/acceptance-test/src/test/java/co/com/bancolombia/demo/DemoRunner.java")
-            .exists());
-    assertTrue(
-        new File("build/unitTest/deployment/acceptance-test/src/test/resources/logback-test.xml")
-            .exists());
-    assertTrue(
-        new File("build/unitTest/deployment/acceptance-test/src/test/resources/karate-config.js")
-            .exists());
-    assertTrue(
-        new File(
-                "build/unitTest/deployment/acceptance-test/src/test/resources/co/com/bancolombia/demo/demo.feature")
-            .exists());
-    assertTrue(new File("build/unitTest/deployment/acceptance-test/settings.gradle").exists());
-    assertTrue(new File("build/unitTest/deployment/acceptance-test/build.gradle").exists());
-    assertTrue(new File("build/unitTest/deployment/acceptance-test/README.md").exists());
-  }
-
-  private void writeString(File file, String string) throws IOException {
-    try (Writer writer = new FileWriter(file)) {
-      writer.write(string);
-    }
+  void generateAcceptanceTest() throws IOException, CleanException {
+    // Arrange
+    task.setName("acceptance-test");
+    // Act
+    task.execute();
+    // Assert
+    assertFilesExistsInDir(
+        TEST_DIR + "/deployment/acceptance-test/",
+        "src/test/java/co/com/bancolombia/TestParallel.java",
+        "src/test/java/co/com/bancolombia/utils/ValidatorTestUtils.java",
+        "src/test/resources/logback-test.xml",
+        "src/test/resources/karate-config.js",
+        "src/test/resources/co/com/bancolombia/demo/demo.feature",
+        "src/test/resources/co/com/bancolombia/demo/addPet.json",
+        "src/test/resources/co/com/bancolombia/pet-store.yaml",
+        "settings.gradle",
+        "build.gradle",
+        "README.md");
   }
 }

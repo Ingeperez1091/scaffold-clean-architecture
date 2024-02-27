@@ -4,14 +4,14 @@ import co.com.crudtest.model.product.Product;
 import co.com.crudtest.model.product.gateways.ProductRepository;
 import java.util.List;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class JpaProductImpl implements ProductRepository {
 
-  private JPARepositoryAdapter jpaRepositoryAdapter;
+  private final JPARepositoryAdapter jpaRepositoryAdapter;
 
   @Override
   public void create(Product product) {
@@ -29,9 +29,7 @@ public class JpaProductImpl implements ProductRepository {
   public void update(String id, Product product) throws Exception {
     Product productDb = jpaRepositoryAdapter.findById(id);
 
-    if (productDb == null) {
-      throw new Exception("Product Not Found : " + id);
-    }
+    if (productDb == null) throw new Exception("Product Not Found : " + id);
 
     productDb.setName(product.getName());
     productDb.setPrice(product.getPrice());

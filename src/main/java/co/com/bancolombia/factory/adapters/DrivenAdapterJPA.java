@@ -1,5 +1,6 @@
 package co.com.bancolombia.factory.adapters;
 
+import static co.com.bancolombia.Constants.APP_SERVICE;
 import static co.com.bancolombia.utils.Utils.buildImplementationFromProject;
 
 import co.com.bancolombia.exceptions.CleanException;
@@ -11,6 +12,9 @@ import java.io.IOException;
 public class DrivenAdapterJPA implements ModuleFactory {
   @Override
   public void buildModule(ModuleBuilder builder) throws IOException, CleanException {
+
+    builder.setUpSecretsInAdapter();
+
     builder.setupFromTemplate("driven-adapter/jpa-repository");
     builder.appendToSettings("jpa-repository", "infrastructure/driven-adapters");
     builder
@@ -23,10 +27,8 @@ public class DrivenAdapterJPA implements ModuleFactory {
         .appendToProperties("spring.jpa")
         .put("databasePlatform", "org.hibernate.dialect.H2Dialect");
     String dependency = buildImplementationFromProject(builder.isKotlin(), ":jpa-repository");
-    builder.appendDependencyToModule("app-service", dependency);
-    if (builder.getBooleanParam("include-secret")) {
-      new DrivenAdapterSecrets().buildModule(builder);
-    }
+    builder.appendDependencyToModule(APP_SERVICE, dependency);
+
     new ObjectMapperFactory().buildModule(builder);
   }
 }

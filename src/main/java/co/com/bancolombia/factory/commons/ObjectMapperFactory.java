@@ -1,5 +1,6 @@
 package co.com.bancolombia.factory.commons;
 
+import static co.com.bancolombia.Constants.APP_SERVICE;
 import static co.com.bancolombia.utils.Utils.buildImplementation;
 
 import co.com.bancolombia.Constants;
@@ -16,7 +17,7 @@ public class ObjectMapperFactory implements ModuleFactory {
     String dependency =
         buildImplementation(
             builder.isKotlin(),
-            "org.reactivecommons.utils:object-mapper:" + Constants.RCOMMONS_OBJECT_MAPPER_VERSION);
-    builder.appendDependencyToModule("app-service", dependency);
+            "org.reactivecommons.utils:object-mapper:" + Constants.REACTIVE_COMMONS_MAPPER_VERSION);
+    builder.appendDependencyToModule(APP_SERVICE, dependency);
   }
 }

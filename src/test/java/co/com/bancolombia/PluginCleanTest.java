@@ -3,18 +3,36 @@
  */
 package co.com.bancolombia;
 
-import static org.junit.Assert.*;
+import static co.com.bancolombia.TestUtils.deleteStructure;
+import static co.com.bancolombia.TestUtils.getTask;
+import static co.com.bancolombia.TestUtils.getTestDir;
+import static co.com.bancolombia.TestUtils.setupProject;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import co.com.bancolombia.exceptions.CleanException;
+import co.com.bancolombia.task.GenerateStructureTask;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.testfixtures.ProjectBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Test;
 
 /** A simple unit test for the 'co.com.bancolombia.greeting' plugin. */
-public class PluginCleanTest {
+class PluginCleanTest {
+  private static final String TEST_DIR = getTestDir(PluginCleanTest.class);
+
+  @AfterAll
+  public static void tearDown() {
+    deleteStructure(Path.of(TEST_DIR));
+  }
 
   @Test
-  public void pluginRegistersATask() {
+  void pluginRegistersATask() {
     // Arrange
     String taskGroup = "Clean Architecture";
     String descriptionTask1 = "Scaffolding clean architecture project";
@@ -28,6 +46,7 @@ public class PluginCleanTest {
     String descriptionTask9 = "Generate subproject by karate framework in deployment layer";
     String descriptionTask10 = "Generate helper in infrastructure layer";
     Project project = ProjectBuilder.builder().build();
+
     project.getPlugins().apply("co.com.bancolombia.cleanArchitecture");
 
     // Act
@@ -72,5 +91,22 @@ public class PluginCleanTest {
 
     assertEquals(taskGroup, task10.getGroup());
     assertEquals(descriptionTask10, task10.getDescription());
+  }
+
+  @Test
+  void shouldApply() throws CleanException, IOException {
+    deleteStructure(Path.of(TEST_DIR));
+    Project project = setupProject(PluginCleanTest.class, GenerateStructureTask.class);
+    GenerateStructureTask generateStructureTask = getTask(project, GenerateStructureTask.class);
+    generateStructureTask.execute();
+
+    ProjectBuilder.builder()
+        .withName("app-service")
+        .withProjectDir(new File(TEST_DIR + "/applications/app-service"))
+        .withParent(project)
+        .build();
+
+    Plugin<?> applied = project.getPlugins().apply("co.com.bancolombia.cleanArchitecture");
+    assertNotNull(applied);
   }
 }

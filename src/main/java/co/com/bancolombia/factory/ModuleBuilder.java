@@ -1,16 +1,26 @@
 package co.com.bancolombia.factory;
 
+import static co.com.bancolombia.Constants.MainFiles.APPLICATION_PROPERTIES;
+import static co.com.bancolombia.Constants.MainFiles.KTS;
+import static co.com.bancolombia.task.GenerateStructureTask.Language.JAVA;
+import static co.com.bancolombia.task.GenerateStructureTask.Language.KOTLIN;
+import static org.gradle.internal.logging.text.StyledTextOutput.Style.*;
+
 import co.com.bancolombia.Constants;
-import co.com.bancolombia.adapters.RestService;
+import co.com.bancolombia.exceptions.CleanException;
 import co.com.bancolombia.exceptions.ParamNotFoundException;
 import co.com.bancolombia.exceptions.ValidationException;
+import co.com.bancolombia.factory.adapters.DrivenAdapterSecrets;
 import co.com.bancolombia.factory.validations.Validation;
 import co.com.bancolombia.models.FileModel;
 import co.com.bancolombia.models.Release;
 import co.com.bancolombia.models.TemplateDefinition;
+import co.com.bancolombia.task.AbstractCleanArchitectureDefaultTask;
 import co.com.bancolombia.utils.FileUpdater;
 import co.com.bancolombia.utils.FileUtils;
 import co.com.bancolombia.utils.Utils;
+import co.com.bancolombia.utils.operations.ExternalOperations;
+import co.com.bancolombia.utils.operations.OperationsProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.mustachejava.DefaultMustacheFactory;
@@ -20,23 +30,27 @@ import com.github.mustachejava.resolver.DefaultResolver;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.SneakyThrows;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
+import org.gradle.internal.logging.text.StyledTextOutput;
+import org.gradle.tooling.GradleConnector;
+import org.gradle.tooling.ProjectConnection;
 
 public class ModuleBuilder {
-
-  private static final String APPLICATION_PROPERTIES =
-      "applications/app-service/src/main/resources/application.yaml";
   private static final String DEFINITION_FILES = "definition.json";
   private static final String LANGUAGE = "language";
+  public static final String LATEST_RELEASE = "latestRelease";
   private final DefaultResolver resolver = new DefaultResolver();
   private final MustacheFactory mustacheFactory = new DefaultMustacheFactory();
   private final Map<String, FileModel> files = new ConcurrentHashMap<>();
@@ -47,67 +61,99 @@ public class ModuleBuilder {
   private final Logger logger;
   @Getter private final Project project;
   private ObjectNode properties;
-  private final RestService restService = new RestService();
+
+  @Setter private StyledTextOutput styledLogger;
+  private final ExternalOperations operations;
 
   public ModuleBuilder(Project project) {
     this.project = project;
     this.logger = getProject().getLogger();
+    this.operations = OperationsProvider.fromDefault();
+    initialize();
+  }
+
+  public ModuleBuilder(Project project, ExternalOperations operations) {
+    this.project = project;
+    this.logger = getProject().getLogger();
+    this.operations = operations;
+    initialize();
+  }
+
+  private void initialize() {
     params.put("projectName", getProject().getName());
     params.put("projectNameLower", getProject().getName().toLowerCase());
-    params.put("pluginVersion", Constants.PLUGIN_VERSION);
-    params.put("springBootVersion", Constants.SPRING_BOOT_VERSION);
-    params.put("sonarVersion", Constants.SONAR_VERSION);
-    params.put("jacocoVersion", Constants.JACOCO_VERSION);
-    params.put("gradleVersion", Constants.GRADLE_WRAPPER_VERSION);
-    params.put("asyncCommonsStarterVersion", Constants.RCOMMONS_ASYNC_COMMONS_STARTER_VERSION);
-    params.put("objectMapperVersion", Constants.RCOMMONS_OBJECT_MAPPER_VERSION);
-    params.put("coberturaVersion", Constants.COBERTURA_VERSION);
-    params.put("lombokVersion", Constants.LOMBOK_VERSION);
-    params.put("commonsJmsVersion", Constants.COMMONS_JMS_VERSION);
-    try {
-      loadPackage();
-    } catch (IOException e) {
-      logger.warn("cannot read gradle.properties");
-    }
+    params.put("lombok", isEnableLombok());
+    params.put("metrics", withMetrics());
+    addConstantsFromClassToModuleBuilder(this, Constants.class);
+    loadPackage();
+    loadLanguage();
+    loadIsExample();
+  }
+
+  public static void addConstantsFromClassToModuleBuilder(ModuleBuilder builder, Class<?> clazz) {
+    Arrays.stream(clazz.getDeclaredFields())
+        .filter(
+            field ->
+                Modifier.isStatic(field.getModifiers()) && Modifier.isFinal(field.getModifiers()))
+        .forEach(field -> builder.addParam(field.getName(), extract(field)));
+  }
+
+  @SneakyThrows
+  private static Object extract(Field field) {
+    return field.get(field.getType());
   }
 
   public void persist() throws IOException {
-    Release latestRelease = restService.getLatestPluginVersion();
-    if (latestRelease != null) {
-      if (!latestRelease.getTagName().equals(Utils.getVersionPlugin())) {
-        logger.lifecycle(
-            "WARNING: You have an old version of the plugin, the latest version is: {}",
-            latestRelease.getTagName());
-        params.put("latestRelease", latestRelease);
-      }
-    }
-    logger.lifecycle("Applying changes");
+    styledLogger.style(Header).println("Applying changes on disk");
 
-    logger.lifecycle("");
+    styledLogger
+        .style(Header)
+        .append("files: ")
+        .style(Success)
+        .append(Integer.toString(files.size()))
+        .style(Header)
+        .append(", dirs: ")
+        .style(Success)
+        .append(Integer.toString(dirs.size()))
+        .style(Header)
+        .append(", deleted dirs: ")
+        .style(Success)
+        .append(Integer.toString(dirsToDelete.size()))
+        .println();
+
     dirs.forEach(
         dir -> {
           getProject().mkdir(dir);
           logger.debug("creating dir {}", dir);
         });
     if (properties != null) {
-      logger.lifecycle("Updating application properties");
+      styledLogger.style(Normal).println("Updating application properties");
       addFile(APPLICATION_PROPERTIES, FileUtils.parseToYaml(properties));
     }
-    for (Map.Entry<String, FileModel> fileEntry : files.entrySet()) {
-      FileModel file = fileEntry.getValue();
-      FileUtils.writeString(getProject(), file.getPath(), file.getContent());
-      logger.debug("file {} written", file.getPath());
-    }
+
+    files.forEach(
+        (key, file) -> {
+          try {
+            FileUtils.writeString(getProject(), file.getPath(), file.getContent());
+          } catch (IOException e) {
+            logger.error("error to write file {}", file.getPath());
+            throw new RuntimeException(e.getMessage(), e);
+          }
+          logger.debug("file {} written", file.getPath());
+        });
+
     dirsToDelete.forEach(
         dir -> {
           getProject().delete(dir);
           logger.debug("deleting dir {}", dir);
         });
-    logger.lifecycle("Changes successfully applied");
+    styledLogger.style(Success).println("Changes successfully applied");
+    getLatestRelease();
   }
 
   public void setupFromTemplate(String resourceGroup) throws IOException, ParamNotFoundException {
     TemplateDefinition definition = loadTemplateDefinition(resourceGroup);
+
     for (String folder : definition.getFolders()) {
       addDir(Utils.fillPath(folder, params));
     }
@@ -142,31 +188,70 @@ public class ModuleBuilder {
         });
   }
 
-  @SneakyThrows
-  public void updateExpression(String path, String regex, String value) {
-    updateFile(path, properties -> Utils.replaceExpression(properties, regex, value));
+  public boolean updateExpression(String path, String regex, String value) throws IOException {
+    return updateFile(path, content -> Utils.replaceExpression(content, regex, value));
   }
 
   @SneakyThrows
   public Set<String> findExpressions(String path, String regex) {
-    logger.lifecycle(
-        "find  "
-            + Pattern.compile(regex).matcher(readFile(path)).results().count()
-            + " dependencies in "
-            + path);
+    logger.debug(
+        "{} dependencies found in {}",
+        Pattern.compile(regex).matcher(readFile(path)).results().count(),
+        path);
     return Pattern.compile(regex)
         .matcher(readFile(path))
         .results()
         .map(MatchResult::group)
-        .map(s -> s.replaceAll("'", ""))
-        .map(s -> s.replaceAll("\"", ""))
+        .map(s -> s.replace("'", ""))
+        .map(s -> s.replace("\"", ""))
         .collect(Collectors.toSet());
   }
 
+  public String getSecretsBackendEnabled() {
+    String fileName = "applications/app-service/build.gradle";
+    if (isKotlin()) {
+      fileName += ".kts";
+    }
+    if (!findExpressions(fileName, "com.github.bancolombia:aws-secrets").isEmpty()) {
+      return "AWS_SECRETS_MANAGER";
+    } else if (!findExpressions(fileName, "com.github.bancolombia:vault").isEmpty()) {
+      return "VAULT";
+    } else {
+      return "NONE";
+    }
+  }
+
+  public void setUpSecretsInAdapter() throws CleanException, IOException {
+    boolean includeSecrets = Boolean.TRUE.equals(getBooleanParam("include-secret"));
+    if (!includeSecrets) {
+      return;
+    }
+    String secretsBackend = getSecretsBackendEnabled();
+    if (secretsBackend.equals("NONE")) {
+      new DrivenAdapterSecrets().buildModule(this);
+      // when new secrets backend is added, the default is aws
+      addParam("include-awssecrets", AbstractCleanArchitectureDefaultTask.BooleanOption.TRUE);
+    } else {
+      addParam("include-awssecrets", "AWS_SECRETS_MANAGER".equalsIgnoreCase(secretsBackend));
+      addParam("include-vaultsecrets", "VAULT".equalsIgnoreCase(secretsBackend));
+    }
+  }
+
   public void appendDependencyToModule(String module, String dependency) throws IOException {
-    logger.lifecycle("adding dependency {} to module {}", dependency, module);
     String buildFilePath = project.getChildProjects().get(module).getBuildFile().getPath();
-    updateFile(buildFilePath, current -> Utils.addDependency(current, dependency));
+    buildFilePath = buildFilePath.replace(project.getProjectDir().getPath(), ".");
+    if (isKotlin() && !buildFilePath.endsWith(KTS)) {
+      buildFilePath += KTS;
+    }
+    updateFile(
+        buildFilePath,
+        current -> {
+          String res = Utils.addDependency(current, dependency);
+          if (!current.equals(res)) {
+            logger.lifecycle("adding dependency {} to module {}", dependency, module);
+          }
+          return res;
+        });
   }
 
   public void appendConfigurationToModule(String module, String configuration) throws IOException {
@@ -206,19 +291,14 @@ public class ModuleBuilder {
     this.params.put(key, value);
   }
 
-  public void loadPackage() throws IOException {
-    addParamPackage(FileUtils.readProperties(project.getProjectDir().getPath(), "package"));
-    this.params.put(
-        LANGUAGE, FileUtils.readProperties(project.getProjectDir().getPath(), LANGUAGE));
-  }
-
   public void addParamPackage(String packageName) {
     this.params.put("package", packageName.toLowerCase());
-    this.params.put("packagePath", packageName.replaceAll("\\.", "\\/").toLowerCase());
+    this.params.put("packagePath", packageName.replace('.', '/').toLowerCase());
   }
 
   public void addFile(String path, String content) {
-    this.files.put(path, FileModel.builder().path(path).content(content).build());
+    String finalPath = FileUtils.toRelative(path);
+    this.files.put(finalPath, FileModel.builder().path(finalPath).content(content).build());
   }
 
   public void addDir(String path) {
@@ -241,20 +321,29 @@ public class ModuleBuilder {
     return params.get(key);
   }
 
-  public Boolean getBooleanParam(String key) {
-    return (Boolean) params.get(key);
+  public boolean getBooleanParam(String key) {
+    return (Boolean) params.getOrDefault(key, false);
   }
 
-  public Boolean isReactive() {
-    return getABooleanProperty("reactive");
+  public boolean isReactive() {
+    return getABooleanProperty("reactive", false);
+  }
+
+  public boolean analyticsEnabled() throws IOException {
+    String value = FileUtils.readProperties(project.getProjectDir().getPath(), "analytics");
+    return "true".equals(value);
   }
 
   public boolean isKotlin() {
-    return params.get(LANGUAGE).toString().equalsIgnoreCase("KOTLIN");
+    return KOTLIN.name().equalsIgnoreCase(params.get(LANGUAGE).toString());
   }
 
-  public Boolean isEnableLombok() {
-    return getABooleanProperty("lombok");
+  public boolean isEnableLombok() {
+    return getABooleanProperty("lombok", true);
+  }
+
+  public boolean withMetrics() {
+    return getABooleanProperty("metrics", true);
   }
 
   @SafeVarargs
@@ -273,13 +362,100 @@ public class ModuleBuilder {
     }
   }
 
-  private Boolean getABooleanProperty(String property) {
+  public boolean updateFile(String path, FileUpdater updater) throws IOException {
+    String content = readFile(path);
+    String newContent = updater.update(content);
+    boolean changed = !content.equals(newContent);
+    if (changed) {
+      addFile(path, newContent);
+    }
+    return changed;
+  }
+
+  public Release getLatestRelease() {
+    if (params.get(LATEST_RELEASE) == null) {
+      loadLatestRelease();
+    }
+    return (Release) params.get(LATEST_RELEASE);
+  }
+
+  public void runTask(String name) {
+    logger.lifecycle("Connecting to project to run task {}", name);
+    try (ProjectConnection connection =
+        GradleConnector.newConnector()
+            .useGradleVersion(Constants.GRADLE_WRAPPER_VERSION)
+            .forProjectDirectory(getProject().getProjectDir())
+            .connect()) {
+      logger.lifecycle("Connected! executing task {}", name);
+      connection.newBuild().forTasks(name).run();
+    } catch (Exception e) {
+      logger.warn(
+          "Error executing 'gradle wrapper', please run it you manually: {}", e.getMessage());
+    }
+  }
+
+  private void loadPackage() {
+    try {
+      addParamPackage(FileUtils.readProperties(project.getProjectDir().getPath(), "package"));
+    } catch (IOException e) {
+      logger.debug("cannot read package from gradle.properties");
+    }
+  }
+
+  private void loadIsExample() {
+    final String param = "example";
+    try {
+      this.params.put(
+          param, "true".equals(FileUtils.readProperties(project.getProjectDir().getPath(), param)));
+    } catch (IOException e) {
+      logger.debug("cannot read example from gradle.properties");
+      this.params.put(param, false);
+    }
+  }
+
+  private void loadLanguage() {
+    String language = null;
+    try {
+      language = FileUtils.readProperties(project.getProjectDir().getPath(), LANGUAGE);
+    } catch (IOException e) {
+      logger.debug("cannot read language from gradle.properties");
+    }
+    if (language == null) {
+      language = JAVA.name().toLowerCase();
+    }
+    this.params.put(LANGUAGE, language);
+  }
+
+  private void loadLatestRelease() {
+    Release latestRelease = operations.getLatestPluginVersion();
+    if (latestRelease != null) {
+      if (latestRelease.getTagName().equals(Utils.getVersionPlugin())) {
+        logger.lifecycle("You have the latest plugin version {}", latestRelease.getTagName());
+      } else {
+        styledLogger
+            .style(Description)
+            .append("You have an old version of the plugin ")
+            .style(Normal)
+            .append("the latest version is: ")
+            .style(Header)
+            .append(latestRelease.getTagName())
+            .style(Normal)
+            .append(" to update it please run: ")
+            .style(Success)
+            .append("gradle u")
+            .println();
+      }
+      params.put(LATEST_RELEASE, latestRelease);
+    }
+  }
+
+  private boolean getABooleanProperty(String property, boolean defaultValue) {
     try {
       String value = FileUtils.readProperties(project.getProjectDir().getPath(), property);
       return "true".equals(value);
     } catch (IOException e) {
-      logger.warn(e.getMessage());
-      logger.lifecycle(
+      logger.info(e.getMessage());
+      logger.info(
           "WARN: variable "
               + property
               + " not present, if your project use "
@@ -287,20 +463,16 @@ public class ModuleBuilder {
               + " please add "
               + property
               + "=true to gradle.properties and relaunch this task");
-      return false;
+      return defaultValue;
     }
   }
 
-  private void updateFile(String path, FileUpdater updater) throws IOException {
-    String content = readFile(path);
-    addFile(path, updater.update(content));
-  }
-
   private String readFile(String path) throws IOException {
-    FileModel current = files.get(path);
+    String finalPath = FileUtils.toRelative(path);
+    FileModel current = files.get(finalPath);
     String content;
     if (current == null) {
-      content = FileUtils.readFile(getProject(), path).collect(Collectors.joining("\n"));
+      content = FileUtils.readFile(getProject(), finalPath);
     } else {
       content = current.getContent();
     }

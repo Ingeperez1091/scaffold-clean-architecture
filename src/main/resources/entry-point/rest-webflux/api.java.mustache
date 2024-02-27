@@ -6,6 +6,9 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+{{#task-param-authorize}}
+import org.springframework.security.access.prepost.PreAuthorize;
+{{/task-param-authorize}}
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -17,11 +20,14 @@ public class ApiRest {
 //    private final MyUseCase useCase;
 
 {{^lombok}}
-    public ApiRest(MyUseCase useCase){
-    this.useCase = useCase;
-    }
+    //public ApiRest(MyUseCase useCase){
+    //    this.useCase = useCase;
+    //}
 {{/lombok}}
 
+{{#task-param-authorize}}
+    @PreAuthorize("hasRole('permission')")
+{{/task-param-authorize}}
     @GetMapping(path = "/path")
     public Mono<String> commandName() {
 //      return useCase.doAction();

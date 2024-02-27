@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -72,11 +71,9 @@ public class Utils {
   }
 
   public static String formatTaskOptions(List<?> options) {
-    List<String> items = new ArrayList<>();
-    for (Object type : options) {
-      items.add(type.toString());
-    }
-    return "[" + String.join("|", items) + "]";
+    return "["
+        + options.stream().map(Object::toString).sorted().collect(Collectors.joining("|"))
+        + "]";
   }
 
   public static String addDependency(String build, String dependency) {
@@ -117,10 +114,6 @@ public class Utils {
 
   private static String getStyle(boolean isKotlin) {
     return isKotlin ? "(\"add\")" : " 'add'";
-  }
-
-  public static String tomcatExclusion(boolean isKotlin) {
-    return isKotlin ? Constants.TOMCAT_EXCLUSION_KOTLIN : Constants.TOMCAT_EXCLUSION;
   }
 
   public static String buildImplementationFromProject(boolean isKotlin, String content) {
@@ -167,6 +160,8 @@ public class Utils {
               .filter(f -> f.endsWith(extension) && !f.contains(".git"))
               .filter(f -> !f.contains(".git"))
               .filter(f -> !f.contains("settings.gradle"))
+              .map(f -> f.replace("\\", "/"))
+              .filter(f -> !f.contains("/bin"))
               .filter(f -> !f.contains("/resources"))
               .filter(f -> !f.contains("/examples-ca"))
               .map(p -> p.replace("build/functionalTest/", ""))
@@ -174,5 +169,18 @@ public class Utils {
               .collect(Collectors.toList());
     }
     return paths;
+  }
+
+  public static String replaceGroup(
+      final String source, final String regex, final String replacement, final int group) {
+    Pattern pattern = Pattern.compile(regex);
+    String result = source;
+    Matcher m = pattern.matcher(result);
+    while (m.find()) {
+      result =
+          new StringBuilder(result).replace(m.start(group), m.end(group), replacement).toString();
+      m = pattern.matcher(result);
+    }
+    return result;
   }
 }

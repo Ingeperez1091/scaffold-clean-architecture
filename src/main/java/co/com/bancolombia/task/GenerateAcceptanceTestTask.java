@@ -1,18 +1,35 @@
 package co.com.bancolombia.task;
 
-import co.com.bancolombia.exceptions.CleanException;
-import co.com.bancolombia.factory.tests.ModuleFactoryTests;
-import co.com.bancolombia.utils.Utils;
-import java.io.IOException;
-import org.gradle.api.tasks.TaskAction;
+import co.com.bancolombia.task.annotations.CATask;
 
-public class GenerateAcceptanceTestTask extends CleanArchitectureDefaultTask {
+@CATask(
+    name = "generateAcceptanceTest",
+    shortcut = "gat",
+    description = "Generate subproject by karate framework in deployment layer")
+public class GenerateAcceptanceTestTask extends AbstractResolvableTypeTask {
 
-  @TaskAction
-  public void generateAcceptanceTestTask() throws IOException, CleanException {
+  @Override
+  protected void prepareParams() {
+    builder.addParam("acceptanceTestPath", name);
+  }
 
-    logger.lifecycle("Clean Architecture plugin version: {}", Utils.getVersionPlugin());
-    ModuleFactoryTests.getTestsFactory().buildModule(builder);
-    builder.persist();
+  @Override
+  protected String resolvePrefix() {
+    return "AcceptanceTest";
+  }
+
+  @Override
+  protected String resolvePackage() {
+    return "co.com.bancolombia.factory.tests.acceptance";
+  }
+
+  @Override
+  protected String defaultName() {
+    return "acceptanceTest";
+  }
+
+  @Override
+  protected String defaultType() {
+    return "karate";
   }
 }

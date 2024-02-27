@@ -1,0 +1,29 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: "rest-consumer-client"
+  devtools:
+    add-properties: false
+  profiles:
+    include: null
+adapter:
+  restconsumer:
+    url: "http://localhost:8081/api"
+
+management:
+  endpoint:
+    health:
+      enabled: true
+      show-details: never
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health, liveness, readiness
+      base-path: /
+      path-mapping:
+        health: health
+        liveness: liveness
+        readiness: readiness

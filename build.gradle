@@ -6,109 +6,220 @@
  * User Manual available at https://docs.gradle.org/5.6.3/userguide/custom_plugins.html
  */
 
-buildscript {
-
-    repositories {
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-    }
-    dependencies {
-        classpath "com.gradle.publish:plugin-publish-plugin:0.9.7"
-        classpath "gradle.plugin.com.github.sherter.google-java-format:google-java-format-gradle-plugin:0.9"
-    }
-}
-
 plugins {
     // Apply the Java Gradle plugin development plugin to add support for developing Gradle plugins
-    id 'java-gradle-plugin'
-    id 'jacoco'
     id 'idea'
-    id 'com.gradle.plugin-publish' version '0.11.0'
-    id "org.sonarqube" version "3.0"
+    id 'jacoco'
     id 'maven-publish'
-    id "com.github.sherter.google-java-format" version "0.9"
+    id 'java-gradle-plugin'
+    id 'org.sonarqube' version '4.4.1.3373'
+    id 'com.gradle.plugin-publish' version '1.2.1'
+    id 'com.github.sherter.google-java-format' version '0.9'
+    id 'io.github.gradle-nexus.publish-plugin' version '1.3.0'
+    id 'org.owasp.dependencycheck' version '9.0.9'
+}
+
+ext {
+    bcRepo = 'https://github.com/bancolombia/scaffold-clean-architecture'
+    bcPluginName = 'Scaffold Clean Architecture Bancolombia'
+    bcPluginDescription = 'Gradle plugin to create a clean application in Java that already works, It follows our best practices!'
 }
 
 group 'co.com.bancolombia.cleanArchitecture'
-
 version System.getProperty('version')
-
-compileJava {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
 
 repositories {
     mavenCentral()
-    jcenter()
+}
+
+compileJava {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+test {
+    maxParallelForks = 2
+    useJUnitPlatform()
+}
+
+if (project.hasProperty('signing.keyId')) { // publish as library in maven central
+    apply plugin: 'signing'
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+
+                pom {
+                    name = bcPluginName
+                    description = bcPluginDescription
+                    url = bcRepo
+                    licenses {
+                        license {
+                            name = "APACHE LICENSE, VERSION 2.0"
+                            url = "https://www.apache.org/licenses/LICENSE-2.0"
+                            distribution = "repo"
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = "santitigaga"
+                            name = "Santiago Garcia Gil"
+                            email = "santitigaga@hotmail.com"
+                        }
+                        developer {
+                            id = "juancgalvis"
+                            name = "Juan Carlos Galvis"
+                            email = "juanc.galvis@outlook.com"
+                        }
+                    }
+                    scm {
+                        url = bcRepo
+                    }
+                }
+            }
+        }
+    }
+
+    nexusPublishing {
+        repositories {
+            sonatype() {
+                group = "com.github.bancolombia"
+            }
+        }
+    }
+
+    signing {
+        sign(publishing.publications.mavenJava)
+    }
+
+    java {
+        withJavadocJar()
+        withSourcesJar()
+    }
+
+    javadoc {
+        if (JavaVersion.current().isJava9Compatible()) {
+            options.addBooleanOption('html5', true)
+        }
+    }
+    javadoc.failOnError = false
+
+    tasks.withType(GenerateModuleMetadata).configureEach {
+        enabled = false
+    }
+
+    def signingTasks = tasks.withType(Sign)
+    signingTasks.forEach { project.logger.lifecycle('task sign: ' + it.name) }
+    tasks.withType(PublishToMavenRepository).configureEach { task ->
+        project.logger.lifecycle('task publish: ' + task.name)
+        if (task.name == 'publishMavenJavaPublicationToSonatypeRepository') {
+            project.logger.lifecycle('Applied to ' + task.name)
+            task.mustRunAfter('signMavenJavaPublication')
+            task.mustRunAfter('signPluginMavenPublication')
+        } else {
+            task.enabled = false
+        }
+    }
+} else { // publish as plugin in gradle and github
+    publishing {
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/bancolombia/scaffold-clean-architecture")
+                credentials {
+                    username = System.getenv("GITHUB_ACTOR")
+                    password = System.getenv("GITHUB_TOKEN")
+                }
+            }
+        }
+    }
+
+    gradlePlugin {
+        // Define the plugin
+        website = 'https://github.com/bancolombia/scaffold-clean-architecture'
+        vcsUrl = 'https://github.com/bancolombia/scaffold-clean-architecture'
+
+        plugins {
+            cleanArchitecture {
+                id = 'co.com.bancolombia.cleanArchitecture'
+                displayName = bcPluginName
+                description = bcPluginDescription
+                implementationClass = 'co.com.bancolombia.PluginClean'
+                tags.set(['scaffold', 'cleanArchitecture', 'Bancolombia', 'OpenSource'])
+            }
+        }
+    }
+
+    // Add a source set for the functional test suite
+    sourceSets {
+        functionalTest {
+        }
+    }
+
+    gradlePlugin.testSourceSets(sourceSets.functionalTest)
+    configurations.functionalTestImplementation.extendsFrom(configurations.testImplementation)
+
+    // Add a task to run the functional tests
+    tasks.register('functionalTest', Test) {
+        description = 'Runs functional tests.'
+        group = 'verification'
+        testClassesDirs = sourceSets.functionalTest.output.classesDirs
+        classpath = sourceSets.functionalTest.runtimeClasspath
+    }
+
+    check {
+        // Run the functional tests as part of `check`
+        dependsOn(tasks.functionalTest)
+    }
+
+    // Add a task to run the utility class
+    tasks.register('updateDependencies', JavaExec) {
+        classpath = sourceSets.main.runtimeClasspath
+        mainClass = 'co.com.bancolombia.utils.offline.LocalTasks'
+        args 'UPDATE'
+    }
 }
 
 dependencies {
-    api 'com.github.spullara.mustache.java:compiler:0.9.6'
-    api 'com.fasterxml.jackson.core:jackson-databind:2.11.0'
-    api 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.11.0'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.0'
-    api 'commons-io:commons-io:2.7'
+    api 'com.github.spullara.mustache.java:compiler:0.9.11'
+    api 'com.fasterxml.jackson.core:jackson-databind:2.16.0'
+    api 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.16.0'
+    api 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.16.0'
+    api 'commons-io:commons-io:2.15.1'
     api gradleApi()
-    testImplementation "org.mockito:mockito-core:2.9.0"
-    testImplementation 'junit:junit:4.12'
+
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.16.0'
+    implementation 'org.reflections:reflections:0.10.2'
+    // swagger generators
+    implementation ('io.swagger.codegen.v3:swagger-codegen-generators:1.0.46') {
+        exclude group: 'net.sf.jopt-simple', module: 'jopt-simple'
+    }
+    implementation 'com.googlecode.lambdaj:lambdaj:2.3.3'
+    implementation 'com.google.googlejavaformat:google-java-format:1.19.2'
+
     testImplementation gradleTestKit()
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.9.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.1'
 
-    compileOnly 'org.projectlombok:lombok:1.18.10'
-    annotationProcessor 'org.projectlombok:lombok:1.18.10'
-    implementation 'com.squareup.okhttp3:okhttp:4.9.3'
-    testImplementation "com.squareup.okhttp3:mockwebserver:4.9.0"
-}
-
-gradlePlugin {
-    // Define the plugin
-    plugins {
-        cleanArchitecture {
-            id = 'co.com.bancolombia.cleanArchitecture'
-            displayName = 'Scaffold Clean Architecture Bancolombia'
-            description = 'Gradle plugin to create a clean application in Java that already works, It follows our best practices!'
-            implementationClass = 'co.com.bancolombia.PluginClean'
-        }
-    }
-}
-
-// Add a source set for the functional test suite
-sourceSets {
-    functionalTest {
-    }
-}
-
-gradlePlugin.testSourceSets(sourceSets.functionalTest)
-configurations.functionalTestImplementation.extendsFrom(configurations.testImplementation)
-
-// Add a task to run the functional tests
-task functionalTest(type: Test) {
-    testClassesDirs = sourceSets.functionalTest.output.classesDirs
-    classpath = sourceSets.functionalTest.runtimeClasspath
-}
-
-check {
-    // Run the functional tests as part of `check`
-    dependsOn(tasks.functionalTest)
-}
-
-pluginBundle {
-    website = 'https://github.com/bancolombia/scaffold-clean-architecture'
-    vcsUrl = 'https://github.com/bancolombia/scaffold-clean-architecture'
-    tags = ['gradle', 'plugin', 'scaffold', 'cleanArchitecture', 'Bancolombia', 'OpenSource']
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
 }
 
 jacocoTestReport {
+    dependsOn(tasks.test)
     reports {
-        xml.enabled true
-        xml.destination file("${buildDir}/reports/jacoco/report.xml")
-        html.enabled true
-        csv.enabled false
+        xml.setRequired true
+        xml.setOutputLocation layout.buildDirectory.file("reports/jacoco/report.xml")
+        html.setRequired true
+        csv.setRequired false
     }
 }
 
-sonarqube {
+sonar {
     properties {
         property "sonar.organization", "grupo-bancolombia"
         property "sonar.projectKey", "bancolombia_scaffold-clean-architecture"
@@ -120,29 +231,55 @@ sonarqube {
         property "sonar.java-coveragePlugin", "jacoco"
         property "sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/report.xml"
         property "sonar.test", "src/test/java"
-        property "sonar.exclusions", ".github/**,src/functionalTest/**,src/test/**/*Test.java,**/**models**,src/test/**/*Provider.java,**/**exceptions**,examples-ca/**"
+        property "sonar.exclusions", ".github/**,src/functionalTest/**,src/test/**/*Test.java,**/**models**,src/test/**/TestUtils.java,src/test/**/*Provider.java,**/**exceptions**,**/examples-ca/**,src/test/**/AnUpdate*.java,**/LocalTasks.java"
         property "sonar.sourceEncoding", "UTF-8"
     }
 }
 
 googleJavaFormat {
     toolVersion = "1.7"
+    exclude '**/examples-ca/**'
+}
+
+dependencyCheck {
+    format = 'JSON'
+    failOnError = false
 }
 
 ////////////////////////////////////////////////////////////////////////
 //
 //  Google Java Format pre-commit hook installation
+//  Semantic Commit Hook installation
 //
-
-tasks.register('installGitHooks', Copy) {
-    from(file('config/hooks/pre-commit')) {
-        rename 'pre-commit', 'pre-commit'
-    }
-    into file('.git/hooks')
+// 
+tasks.register('copyPreCommit', Copy) {
+    from 'config/hooks/pre-commit'
+    into '.git/hooks'
     fileMode 0777
 }
 
-tasks.named('wrapper') {
-    gradleVersion = '6.9.1'
+tasks.register('downloadCommitMessage') {
+    def f = new File('.git/hooks/commit-msg.sample2')
+    if (!f.exists()) {
+        new URL('https://raw.githubusercontent.com/hazcod/semantic-commit-hook/master/commit-msg').withInputStream { i -> f.withOutputStream { it << i } }
+    }
 }
 
+tasks.register('fileModeCommitMessage', Copy) {
+    dependsOn 'downloadCommitMessage', 'copyPreCommit'
+    from '.git/hooks/commit-msg.sample2'
+    into '.git/hooks/'
+    rename 'commit-msg.sample2', 'commit-msg'
+    fileMode 0777
+}
+
+tasks.register('installGitHooks') {
+    dependsOn 'copyPreCommit', 'downloadCommitMessage', 'fileModeCommitMessage'
+    doLast {
+        println 'GitHooks installed!'
+    }
+}
+
+tasks.named('wrapper') {
+    gradleVersion = '8.5'
+}

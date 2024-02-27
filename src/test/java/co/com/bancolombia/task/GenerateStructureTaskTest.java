@@ -1,32 +1,45 @@
 package co.com.bancolombia.task;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static co.com.bancolombia.TestUtils.assertFilesExistsInDir;
+import static co.com.bancolombia.TestUtils.deleteStructure;
+import static co.com.bancolombia.TestUtils.getTask;
+import static co.com.bancolombia.TestUtils.getTestDir;
+import static co.com.bancolombia.TestUtils.setupProject;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import co.com.bancolombia.Constants;
 import co.com.bancolombia.exceptions.CleanException;
+import co.com.bancolombia.task.AbstractCleanArchitectureDefaultTask.BooleanOption;
+import co.com.bancolombia.task.GenerateStructureTask.JavaVersion;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import org.gradle.api.Project;
-import org.gradle.testfixtures.ProjectBuilder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class GenerateStructureTaskTest {
+class GenerateStructureTaskTest {
+  private static final String TEST_DIR = getTestDir(GenerateStructureTaskTest.class);
   private GenerateStructureTask task;
+  private Project project;
 
-  @Before
+  @BeforeEach
   public void setup() {
-    Project project = ProjectBuilder.builder().withProjectDir(new File("build/unitTest")).build();
-    project.getTasks().create("test", GenerateStructureTask.class);
+    deleteStructure(Path.of(TEST_DIR));
+    project = setupProject(GenerateStructureTaskTest.class, GenerateStructureTask.class);
+    task = getTask(project, GenerateStructureTask.class);
+  }
 
-    task = (GenerateStructureTask) project.getTasks().getByName("test");
+  @AfterAll
+  public static void tearDown() {
+    deleteStructure(Path.of(TEST_DIR));
   }
 
   @Test
-  public void shouldReturnProjectTypes() {
+  void shouldReturnProjectTypes() {
     // Arrange
     // Act
     List<GenerateStructureTask.ProjectType> types = task.getAvailableProjectTypes();
@@ -35,7 +48,7 @@ public class GenerateStructureTaskTest {
   }
 
   @Test
-  public void shouldReturnCoveragePluginTypes() {
+  void shouldReturnCoveragePluginTypes() {
     // Arrange
     // Act
     List<GenerateStructureTask.CoveragePlugin> types = task.getCoveragePlugins();
@@ -44,110 +57,135 @@ public class GenerateStructureTaskTest {
   }
 
   @Test
-  public void generateStructure() throws IOException, CleanException {
+  void shouldReturnMetricsOptions() {
     // Arrange
     // Act
-    task.generateStructureTask();
+    List<BooleanOption> types = task.getMetricsOptions();
     // Assert
-    assertTrue(new File("build/unitTest/README.md").exists());
-    assertTrue(new File("build/unitTest/.gitignore").exists());
-    assertTrue(new File("build/unitTest/build.gradle").exists());
-    assertTrue(new File("build/unitTest/lombok.config").exists());
-    assertTrue(new File("build/unitTest/main.gradle").exists());
-    assertTrue(new File("build/unitTest/settings.gradle").exists());
-
-    assertTrue(new File("build/unitTest/infrastructure/driven-adapters/").exists());
-    assertTrue(new File("build/unitTest/infrastructure/entry-points").exists());
-    assertTrue(new File("build/unitTest/infrastructure/helpers").exists());
-
-    assertTrue(
-        new File("build/unitTest/domain/model/src/main/java/co/com/bancolombia/model").exists());
-    assertTrue(
-        new File("build/unitTest/domain/model/src/test/java/co/com/bancolombia/model").exists());
-    assertTrue(new File("build/unitTest/domain/model/build.gradle").exists());
-    assertTrue(
-        new File("build/unitTest/domain/usecase/src/main/java/co/com/bancolombia/usecase")
-            .exists());
-    assertTrue(
-        new File("build/unitTest/domain/usecase/src/test/java/co/com/bancolombia/usecase")
-            .exists());
-    assertTrue(new File("build/unitTest/domain/usecase/build.gradle").exists());
-
-    assertTrue(new File("build/unitTest/applications/app-service/build.gradle").exists());
-    assertTrue(
-        new File(
-                "build/unitTest/applications/app-service/src/main/java/co/com/bancolombia/MainApplication.java")
-            .exists());
-    assertTrue(
-        new File(
-                "build/unitTest/applications/app-service/src/main/java/co/com/bancolombia/config/UseCasesConfig.java")
-            .exists());
-    assertTrue(
-        new File("build/unitTest/applications/app-service/src/main/java/co/com/bancolombia/config")
-            .exists());
-    assertTrue(
-        new File("build/unitTest/applications/app-service/src/main/resources/application.yaml")
-            .exists());
-    assertTrue(
-        new File("build/unitTest/applications/app-service/src/main/resources/log4j2.properties")
-            .exists());
-    assertTrue(
-        new File("build/unitTest/applications/app-service/src/test/java/co/com/bancolombia")
-            .exists());
+    assertEquals(Arrays.asList(AbstractCleanArchitectureDefaultTask.BooleanOption.values()), types);
   }
 
   @Test
-  public void generateStructureReactiveWithCobertura() throws IOException, CleanException {
+  void shouldReturnForceOptions() {
     // Arrange
+    // Act
+    List<BooleanOption> types = task.getForceOptions();
+    // Assert
+    assertEquals(Arrays.asList(AbstractCleanArchitectureDefaultTask.BooleanOption.values()), types);
+  }
+
+  @Test
+  void shouldReturnJavaVersion() {
+    // Arrange
+    // Act
+    List<JavaVersion> types = task.getJavaVersions();
+    // Assert
+    assertEquals(Arrays.asList(JavaVersion.values()), types);
+  }
+
+  @Test
+  void generateStructure() throws IOException, CleanException {
+    // Arrange
+    String dir = project.getProjectDir().getPath();
+    // Act
+    task.execute();
+    // Assert
+    assertFilesExistsInDir(
+        dir,
+        "README.md",
+        ".gitignore",
+        "build.gradle",
+        "lombok.config",
+        "main.gradle",
+        "settings.gradle",
+        "infrastructure/driven-adapters/",
+        "infrastructure/entry-points",
+        "infrastructure/helpers",
+        "domain/model/src/main/java/co/com/bancolombia/model",
+        "domain/model/src/test/java/co/com/bancolombia/model",
+        "domain/model/build.gradle",
+        "domain/usecase/src/main/java/co/com/bancolombia/usecase",
+        "domain/usecase/src/test/java/co/com/bancolombia/usecase",
+        "domain/usecase/build.gradle",
+        "applications/app-service/build.gradle",
+        "applications/app-service/src/main/java/co/com/bancolombia/MainApplication.java",
+        "applications/app-service/src/main/java/co/com/bancolombia/config/UseCasesConfig.java",
+        "applications/app-service/src/main/java/co/com/bancolombia/config",
+        "applications/app-service/src/main/resources/application.yaml",
+        "applications/app-service/src/main/resources/log4j2.properties",
+        "applications/app-service/src/test/java/co/com/bancolombia");
+  }
+
+  @Test
+  void generateStructureReactiveWithCoberturaNoLombok() throws IOException, CleanException {
+    // Arrange
+    String dir = project.getProjectDir().getPath();
     task.setPackage("test");
     task.setName("projectTest");
     task.setType(GenerateStructureTask.ProjectType.REACTIVE);
     task.setCoveragePlugin(GenerateStructureTask.CoveragePlugin.COBERTURA);
+    task.setStatusLombok(AbstractCleanArchitectureDefaultTask.BooleanOption.FALSE);
+    task.setMetrics(AbstractCleanArchitectureDefaultTask.BooleanOption.FALSE);
+    task.setForce(AbstractCleanArchitectureDefaultTask.BooleanOption.FALSE);
+    task.setJavaVersion(JavaVersion.VERSION_17);
     // Act
-    task.generateStructureTask();
+    task.execute();
     // Assert
-    assertTrue(new File("build/unitTest/README.md").exists());
-    assertTrue(new File("build/unitTest/.gitignore").exists());
-    assertTrue(new File("build/unitTest/build.gradle").exists());
-    assertTrue(new File("build/unitTest/lombok.config").exists());
-    assertTrue(new File("build/unitTest/main.gradle").exists());
-    assertTrue(new File("build/unitTest/settings.gradle").exists());
-
-    assertTrue(new File("build/unitTest/infrastructure/driven-adapters/").exists());
-    assertTrue(new File("build/unitTest/infrastructure/entry-points").exists());
-    assertTrue(new File("build/unitTest/infrastructure/helpers").exists());
-
-    assertTrue(new File("build/unitTest/domain/model/src/main/java/test/model").exists());
-    assertTrue(new File("build/unitTest/domain/model/src/test/java/test/model").exists());
-    assertTrue(new File("build/unitTest/domain/model/build.gradle").exists());
-    assertTrue(new File("build/unitTest/domain/usecase/src/main/java/test/usecase").exists());
-    assertTrue(new File("build/unitTest/domain/usecase/src/test/java/test/usecase").exists());
-    assertTrue(new File("build/unitTest/domain/usecase/build.gradle").exists());
-
-    assertTrue(new File("build/unitTest/applications/app-service/build.gradle").exists());
-    assertTrue(
-        new File("build/unitTest/applications/app-service/src/main/java/test/MainApplication.java")
-            .exists());
-    assertTrue(
-        new File(
-                "build/unitTest/applications/app-service/src/main/java/co/com/bancolombia/config/UseCasesConfig.java")
-            .exists());
-    assertTrue(
-        new File("build/unitTest/applications/app-service/src/main/java/test/config").exists());
-    assertTrue(
-        new File("build/unitTest/applications/app-service/src/main/resources/application.yaml")
-            .exists());
-    assertTrue(
-        new File("build/unitTest/applications/app-service/src/main/resources/log4j2.properties")
-            .exists());
-    assertTrue(new File("build/unitTest/applications/app-service/src/test/java/test").exists());
+    assertFalse(new File(dir + "lombok.config").exists());
+    assertFilesExistsInDir(
+        dir,
+        "README.md",
+        ".gitignore",
+        "build.gradle",
+        "main.gradle",
+        "settings.gradle",
+        "infrastructure/driven-adapters/",
+        "infrastructure/entry-points",
+        "infrastructure/helpers",
+        "domain/model/src/main/java/test/model",
+        "domain/model/src/test/java/test/model",
+        "domain/model/build.gradle",
+        "domain/usecase/src/main/java/test/usecase",
+        "domain/usecase/src/test/java/test/usecase",
+        "domain/usecase/build.gradle",
+        "applications/app-service/build.gradle",
+        "applications/app-service/src/main/java/test/MainApplication.java",
+        "applications/app-service/src/main/java/test/config/UseCasesConfig.java",
+        "applications/app-service/src/main/java/test/config",
+        "applications/app-service/src/main/resources/application.yaml",
+        "applications/app-service/src/main/resources/log4j2.properties",
+        "applications/app-service/src/test/java/test");
   }
 
   @Test
-  public void shouldGetLombokOptions() {
+  void generateStructureOnExistingProject() throws IOException, CleanException {
+    // Arrange
+    String dir = project.getProjectDir().getPath();
+    task.execute();
+    // Act
+    task.execute();
+    // Assert
+    assertFilesExistsInDir(dir, "build.gradle", "gradle.properties", "main.gradle");
+  }
+
+  @Test
+  void generateStructureOnExistingProjectNoLombok() throws IOException, CleanException {
+    // Arrange
+    String dir = project.getProjectDir().getPath();
+    task.setStatusLombok(AbstractCleanArchitectureDefaultTask.BooleanOption.FALSE);
+    task.execute();
+    // Act
+    task.execute();
+    // Assert
+    assertFilesExistsInDir(dir, "build.gradle", "gradle.properties", "main.gradle");
+    assertFalse(new File(dir + "lombok.config").exists());
+  }
+
+  @Test
+  void shouldGetLombokOptions() {
     // Arrange
     // Act
-    List<Constants.BooleanOption> options = task.getLombokOptions();
+    List<BooleanOption> options = task.getLombokOptions();
     // Assert
     assertEquals(2, options.size());
   }

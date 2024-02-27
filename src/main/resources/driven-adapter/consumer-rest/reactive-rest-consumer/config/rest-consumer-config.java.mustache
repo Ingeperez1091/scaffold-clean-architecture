@@ -17,14 +17,19 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 @Configuration
 public class RestConsumerConfig {
 
-    @Value("${adapter.restconsumer.url}")
-    private String url;
-    @Value("${adapter.restconsumer.timeout}")
-    private int timeout;
+    private final String url;
+
+    private final int timeout;
+
+    public RestConsumerConfig(@Value("${adapter.restconsumer.url}") String url,
+                              @Value("${adapter.restconsumer.timeout}") int timeout) {
+        this.url = url;
+        this.timeout = timeout;
+    }
 
     @Bean
-    public WebClient getWebClient() {
-        return WebClient.builder()
+    public WebClient getWebClient(WebClient.Builder builder) {
+        return builder
             .baseUrl(url)
             .defaultHeader(HttpHeaders.CONTENT_TYPE, "application/json")
             .clientConnector(getClientHttpConnector())
@@ -33,11 +38,9 @@ public class RestConsumerConfig {
 
     private ClientHttpConnector getClientHttpConnector() {
         /*
-        IF YO REQUIRE APPEND SSL CERTIFICATE SELF SIGNED
-        SslContext sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .build();*/
+        IF YO REQUIRE APPEND SSL CERTIFICATE SELF SIGNED: this should be in the default cacerts trustore
+        */
         return new ReactorClientHttpConnector(HttpClient.create()
-                //.secure(sslContextSpec -> sslContextSpec.sslContext(sslContext))
                 .compress(true)
                 .keepAlive(true)
                 .option(CONNECT_TIMEOUT_MILLIS, timeout)

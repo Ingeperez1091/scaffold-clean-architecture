@@ -3,7 +3,10 @@
  */
 package co.com.bancolombia;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -19,30 +22,91 @@ import org.apache.commons.io.file.SimplePathVisitor;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.gradle.testkit.runner.TaskOutcome;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /** A simple functional test for the 'co.com.bancolombia.greeting' plugin. */
+@SuppressWarnings("DataFlowIssue")
 public class PluginCleanFunctionalTest {
+
+  public static final String BUILD_FUNCTIONAL_TEST_README_MD = "build/functionalTest/README.md";
+  public static final String BUILD_FUNCTIONAL_TEST_GITIGNORE = "build/functionalTest/.gitignore";
+  public static final String BUILD_FUNCTIONAL_TEST_BUILD_GRADLE =
+      "build/functionalTest/build.gradle";
+  public static final String BUILD_FUNCTIONAL_TEST_MAIN_GRADLE = "build/functionalTest/main.gradle";
+  public static final String BUILD_FUNCTIONAL_TEST_SETTINGS_GRADLE =
+      "build/functionalTest/settings.gradle";
+  public static final String BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_DRIVEN_ADAPTERS =
+      "build/functionalTest/infrastructure/driven-adapters/";
+  public static final String BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS =
+      "build/functionalTest/infrastructure/entry-points";
+  public static final String BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_HELPERS =
+      "build/functionalTest/infrastructure/helpers";
+  public static final String BUILD_FUNCTIONAL_TEST_DOMAIN_MODEL_BUILD_GRADLE =
+      "build/functionalTest/domain/model/build.gradle";
+  public static final String BUILD_FUNCTIONAL_TEST_DOMAIN_USECASE_BUILD_GRADLE =
+      "build/functionalTest/domain/usecase/build.gradle";
+  public static final String BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_BUILD_GRADLE =
+      "build/functionalTest/applications/app-service/build.gradle";
+  public static final String
+      BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_SRC_MAIN_RESOURCES_APPLICATION_YAML =
+          "build/functionalTest/applications/app-service/src/main/resources/application.yaml";
+  public static final String
+      BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_SRC_MAIN_RESOURCES_LOG_4_J_2_PROPERTIES =
+          "build/functionalTest/applications/app-service/src/main/resources/log4j2.properties";
+  public static final String GENERATE_DRIVEN_ADAPTER = "generateDrivenAdapter";
+  public static final String TYPE = "--type=";
+  public static final String NAME = "--name=";
+  public static final String GENERATE_ENTRY_POINT = "generateEntryPoint";
+  public static final String GRAPHQLPATH = "/graphqlpath";
+  public static final String
+      BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_SRC_MAIN_JAVA_CO_COM_BANCOLOMBIA_API_API_REST_JAVA =
+          "build/functionalTest/infrastructure/entry-points/api-rest/src/main/java/co/com/bancolombia/api/ApiRest.java";
+  public static final String
+      BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_BUILD_GRADLE =
+          "build/functionalTest/infrastructure/entry-points/api-rest/build.gradle";
+  public static final String
+      COMPILE_EXCLUDE_GROUP_ORG_SPRINGFRAMEWORK_BOOT_MODULE_SPRING_BOOT_STARTER_TOMCAT =
+          "implementation.exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'";
+  public static final String ASYNCEVENTBUS = "ASYNCEVENTBUS";
+
+  public static final String SECRETS = "SECRETS";
+
+  public static final String RESTMVC = "restmvc";
+  public static final String SERVER = "--server=";
+  public static final String VALIDATE_STRUCTURE = "validateStructure";
   static File projectDir = new File("build/functionalTest");
   GradleRunner runner;
 
-  @Before
+  @BeforeEach
   public void init() throws IOException {
-    // Setup the test build
+    // Set up the test build
     deleteStructure(projectDir.toPath());
     Files.createDirectories(projectDir.toPath());
     writeString(new File(projectDir, "settings.gradle"), "");
     writeString(
         new File(projectDir, "build.gradle"),
-        "plugins {" + "  id('co.com.bancolombia.cleanArchitecture')" + "}");
+        "plugins {" + " id 'co.com.bancolombia.cleanArchitecture'" + "}");
     runner = GradleRunner.create();
     runner.forwardOutput();
     runner.withPluginClasspath();
   }
 
-  @AfterClass
+  public void initKotlin() throws IOException {
+    // Setup the test build
+    deleteStructure(projectDir.toPath());
+    Files.createDirectories(projectDir.toPath());
+    writeString(new File(projectDir, "settings.gradle.kts"), "");
+    writeString(
+        new File(projectDir, "build.gradle.kts"),
+        "plugins {" + "  id(\"co.com.bancolombia.cleanArchitecture\")" + "}");
+    runner = GradleRunner.create();
+    runner.forwardOutput();
+    runner.withPluginClasspath();
+  }
+
+  @AfterAll
   public static void clean() {
     deleteStructure(projectDir.toPath());
   }
@@ -79,16 +143,15 @@ public class PluginCleanFunctionalTest {
     runner.withArguments(task, "--lombok=" + "false");
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
-    // Verify the result
-    assertTrue(new File("build/functionalTest/README.md").exists());
-    assertTrue(new File("build/functionalTest/.gitignore").exists());
-    assertTrue(new File("build/functionalTest/build.gradle").exists());
-    assertTrue(new File("build/functionalTest/main.gradle").exists());
-    assertTrue(new File("build/functionalTest/settings.gradle").exists());
+    // Verify the resultassertTrue(new File(BUILD_FUNCTIONAL_TEST_README_MD).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_GITIGNORE).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_BUILD_GRADLE).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_MAIN_GRADLE).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_SETTINGS_GRADLE).exists());
 
-    assertTrue(new File("build/functionalTest/infrastructure/driven-adapters/").exists());
-    assertTrue(new File("build/functionalTest/infrastructure/entry-points").exists());
-    assertTrue(new File("build/functionalTest/infrastructure/helpers").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_DRIVEN_ADAPTERS).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_HELPERS).exists());
 
     assertTrue(
         new File("build/functionalTest/domain/model/src/main/java/co/com/bancolombia/model")
@@ -96,16 +159,16 @@ public class PluginCleanFunctionalTest {
     assertTrue(
         new File("build/functionalTest/domain/model/src/test/java/co/com/bancolombia/model")
             .exists());
-    assertTrue(new File("build/functionalTest/domain/model/build.gradle").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_DOMAIN_MODEL_BUILD_GRADLE).exists());
     assertTrue(
         new File("build/functionalTest/domain/usecase/src/main/java/co/com/bancolombia/usecase")
             .exists());
     assertTrue(
         new File("build/functionalTest/domain/usecase/src/test/java/co/com/bancolombia/usecase")
             .exists());
-    assertTrue(new File("build/functionalTest/domain/usecase/build.gradle").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_DOMAIN_USECASE_BUILD_GRADLE).exists());
 
-    assertTrue(new File("build/functionalTest/applications/app-service/build.gradle").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_BUILD_GRADLE).exists());
     assertTrue(
         new File(
                 "build/functionalTest/applications/app-service/src/main/java/co/com/bancolombia/MainApplication.java")
@@ -119,12 +182,11 @@ public class PluginCleanFunctionalTest {
                 "build/functionalTest/applications/app-service/src/main/java/co/com/bancolombia/config")
             .exists());
     assertTrue(
-        new File(
-                "build/functionalTest/applications/app-service/src/main/resources/application.yaml")
+        new File(BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_SRC_MAIN_RESOURCES_APPLICATION_YAML)
             .exists());
     assertTrue(
         new File(
-                "build/functionalTest/applications/app-service/src/main/resources/log4j2.properties")
+                BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_SRC_MAIN_RESOURCES_LOG_4_J_2_PROPERTIES)
             .exists());
     assertTrue(
         new File("build/functionalTest/applications/app-service/src/test/java/co/com/bancolombia")
@@ -142,16 +204,16 @@ public class PluginCleanFunctionalTest {
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     // Verify the result
-    assertTrue(new File("build/functionalTest/README.md").exists());
-    assertTrue(new File("build/functionalTest/.gitignore").exists());
-    assertTrue(new File("build/functionalTest/build.gradle").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_README_MD).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_GITIGNORE).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_BUILD_GRADLE).exists());
     assertTrue(new File("build/functionalTest/lombok.config").exists());
-    assertTrue(new File("build/functionalTest/main.gradle").exists());
-    assertTrue(new File("build/functionalTest/settings.gradle").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_MAIN_GRADLE).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_SETTINGS_GRADLE).exists());
 
-    assertTrue(new File("build/functionalTest/infrastructure/driven-adapters/").exists());
-    assertTrue(new File("build/functionalTest/infrastructure/entry-points").exists());
-    assertTrue(new File("build/functionalTest/infrastructure/helpers").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_DRIVEN_ADAPTERS).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_HELPERS).exists());
 
     assertTrue(
         new File("build/functionalTest/domain/model/src/main/java/co/com/bancolombia/model")
@@ -159,16 +221,16 @@ public class PluginCleanFunctionalTest {
     assertTrue(
         new File("build/functionalTest/domain/model/src/test/java/co/com/bancolombia/model")
             .exists());
-    assertTrue(new File("build/functionalTest/domain/model/build.gradle").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_DOMAIN_MODEL_BUILD_GRADLE).exists());
     assertTrue(
         new File("build/functionalTest/domain/usecase/src/main/java/co/com/bancolombia/usecase")
             .exists());
     assertTrue(
         new File("build/functionalTest/domain/usecase/src/test/java/co/com/bancolombia/usecase")
             .exists());
-    assertTrue(new File("build/functionalTest/domain/usecase/build.gradle").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_DOMAIN_USECASE_BUILD_GRADLE).exists());
 
-    assertTrue(new File("build/functionalTest/applications/app-service/build.gradle").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_BUILD_GRADLE).exists());
     assertTrue(
         new File(
                 "build/functionalTest/applications/app-service/src/main/java/co/com/bancolombia/MainApplication.java")
@@ -182,12 +244,73 @@ public class PluginCleanFunctionalTest {
                 "build/functionalTest/applications/app-service/src/main/java/co/com/bancolombia/config")
             .exists());
     assertTrue(
-        new File(
-                "build/functionalTest/applications/app-service/src/main/resources/application.yaml")
+        new File(BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_SRC_MAIN_RESOURCES_APPLICATION_YAML)
             .exists());
     assertTrue(
         new File(
-                "build/functionalTest/applications/app-service/src/main/resources/log4j2.properties")
+                BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_SRC_MAIN_RESOURCES_LOG_4_J_2_PROPERTIES)
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/applications/app-service/src/test/java/co/com/bancolombia")
+            .exists());
+
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void canRunTaskGenerateStructureImperative() {
+
+    String task = "ca";
+
+    runner.withArguments(task, TYPE + "imperative");
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+    // Verify the result
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_README_MD).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_GITIGNORE).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_BUILD_GRADLE).exists());
+    assertTrue(new File("build/functionalTest/lombok.config").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_MAIN_GRADLE).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_SETTINGS_GRADLE).exists());
+
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_DRIVEN_ADAPTERS).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_HELPERS).exists());
+
+    assertTrue(
+        new File("build/functionalTest/domain/model/src/main/java/co/com/bancolombia/model")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/domain/model/src/test/java/co/com/bancolombia/model")
+            .exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_DOMAIN_MODEL_BUILD_GRADLE).exists());
+    assertTrue(
+        new File("build/functionalTest/domain/usecase/src/main/java/co/com/bancolombia/usecase")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/domain/usecase/src/test/java/co/com/bancolombia/usecase")
+            .exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_DOMAIN_USECASE_BUILD_GRADLE).exists());
+
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_BUILD_GRADLE).exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/applications/app-service/src/main/java/co/com/bancolombia/MainApplication.java")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/applications/app-service/src/main/java/co/com/bancolombia/config/UseCasesConfig.java")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/applications/app-service/src/main/java/co/com/bancolombia/config")
+            .exists());
+    assertTrue(
+        new File(BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_SRC_MAIN_RESOURCES_APPLICATION_YAML)
+            .exists());
+    assertTrue(
+        new File(
+                BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_SRC_MAIN_RESOURCES_LOG_4_J_2_PROPERTIES)
             .exists());
     assertTrue(
         new File("build/functionalTest/applications/app-service/src/test/java/co/com/bancolombia")
@@ -202,11 +325,11 @@ public class PluginCleanFunctionalTest {
     runner.withProjectDir(projectDir);
     runner.build();
 
-    runner.withArguments("generateDrivenAdapter", "--type=" + "jpa");
+    runner.withArguments(GENERATE_DRIVEN_ADAPTER, TYPE + "jpa");
     runner.withProjectDir(projectDir);
     runner.build();
 
-    runner.withArguments("generateDrivenAdapter", "--type=" + "MONGODB");
+    runner.withArguments(GENERATE_DRIVEN_ADAPTER, TYPE + "MONGODB");
     runner.withProjectDir(projectDir);
     runner.build();
   }
@@ -216,11 +339,11 @@ public class PluginCleanFunctionalTest {
     runner.withProjectDir(projectDir);
     runner.build();
 
-    runner.withArguments("generateDrivenAdapter", "--type=" + "jpa");
+    runner.withArguments(GENERATE_DRIVEN_ADAPTER, TYPE + "jpa");
     runner.withProjectDir(projectDir);
     runner.build();
 
-    runner.withArguments("generateDrivenAdapter", "--type=" + "ASYNCEVENTBUS");
+    runner.withArguments(GENERATE_DRIVEN_ADAPTER, TYPE + ASYNCEVENTBUS);
     runner.withProjectDir(projectDir);
     runner.build();
   }
@@ -231,34 +354,34 @@ public class PluginCleanFunctionalTest {
     String packageName = "co.com.test";
     String projectName = "ProjectName";
 
-    runner.withArguments(task, "--name=" + projectName, "--package=" + packageName);
+    runner.withArguments(task, NAME + projectName, "--package=" + packageName);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     // Verify the result
 
-    assertTrue(new File("build/functionalTest/README.md").exists());
-    assertTrue(new File("build/functionalTest/.gitignore").exists());
-    assertTrue(new File("build/functionalTest/build.gradle").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_README_MD).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_GITIGNORE).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_BUILD_GRADLE).exists());
     assertTrue(new File("build/functionalTest/lombok.config").exists());
-    assertTrue(new File("build/functionalTest/main.gradle").exists());
-    assertTrue(new File("build/functionalTest/settings.gradle").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_MAIN_GRADLE).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_SETTINGS_GRADLE).exists());
 
-    assertTrue(new File("build/functionalTest/infrastructure/driven-adapters/").exists());
-    assertTrue(new File("build/functionalTest/infrastructure/entry-points").exists());
-    assertTrue(new File("build/functionalTest/infrastructure/helpers").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_DRIVEN_ADAPTERS).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS).exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_HELPERS).exists());
 
     assertTrue(
         new File("build/functionalTest/domain/model/src/main/java/co/com/test/model").exists());
     assertTrue(
         new File("build/functionalTest/domain/model/src/test/java/co/com/test/model").exists());
-    assertTrue(new File("build/functionalTest/domain/model/build.gradle").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_DOMAIN_MODEL_BUILD_GRADLE).exists());
     assertTrue(
         new File("build/functionalTest/domain/usecase/src/main/java/co/com/test/usecase").exists());
     assertTrue(
         new File("build/functionalTest/domain/usecase/src/test/java/co/com/test/usecase").exists());
-    assertTrue(new File("build/functionalTest/domain/usecase/build.gradle").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_DOMAIN_USECASE_BUILD_GRADLE).exists());
 
-    assertTrue(new File("build/functionalTest/applications/app-service/build.gradle").exists());
+    assertTrue(new File(BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_BUILD_GRADLE).exists());
     assertTrue(
         new File(
                 "build/functionalTest/applications/app-service/src/main/java/co/com/test/MainApplication.java")
@@ -267,12 +390,11 @@ public class PluginCleanFunctionalTest {
         new File("build/functionalTest/applications/app-service/src/main/java/co/com/test/config")
             .exists());
     assertTrue(
-        new File(
-                "build/functionalTest/applications/app-service/src/main/resources/application.yaml")
+        new File(BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_SRC_MAIN_RESOURCES_APPLICATION_YAML)
             .exists());
     assertTrue(
         new File(
-                "build/functionalTest/applications/app-service/src/main/resources/log4j2.properties")
+                BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_SRC_MAIN_RESOURCES_LOG_4_J_2_PROPERTIES)
             .exists());
     assertTrue(
         new File("build/functionalTest/applications/app-service/src/test/java/co/com/test")
@@ -288,7 +410,7 @@ public class PluginCleanFunctionalTest {
     canRunTaskGenerateStructureWithOutParameters();
 
     // Run the build
-    runner.withArguments(task, "--name=" + modelName);
+    runner.withArguments(task, NAME + modelName);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     assertTrue(
@@ -310,7 +432,7 @@ public class PluginCleanFunctionalTest {
     String useCaseName = "business";
 
     // Setup the test buildº
-    runner.withArguments(task, "--name=" + useCaseName);
+    runner.withArguments(task, NAME + useCaseName);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     assertTrue(
@@ -324,11 +446,11 @@ public class PluginCleanFunctionalTest {
   @Test
   public void canRunTaskGenerateDrivenAdapterRestConsumerCaseWithParameters() {
     canRunTaskGenerateStructureWithOutParameters();
-    String task = "generateDrivenAdapter";
+    String task = GENERATE_DRIVEN_ADAPTER;
     String valueDrivenAdapter = "restconsumer";
     String valueurlDrivenAdapter = "http://localhost:8080";
 
-    runner.withArguments(task, "--type=" + valueDrivenAdapter, "--url=" + valueurlDrivenAdapter);
+    runner.withArguments(task, TYPE + valueDrivenAdapter, "--url=" + valueurlDrivenAdapter);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     assertTrue(
@@ -345,11 +467,11 @@ public class PluginCleanFunctionalTest {
   @Test
   public void canRunTaskGenerateEntryPointGraphqlApiCase() {
     canRunTaskGenerateStructureReactiveProject();
-    String task = "generateEntryPoint";
+    String task = GENERATE_ENTRY_POINT;
     String valueEntryPoint = "graphql";
-    String valuePathgqlEntryPoint = "/graphqlpath";
+    String valuePathgqlEntryPoint = GRAPHQLPATH;
 
-    runner.withArguments(task, "--type=" + valueEntryPoint, "--pathgql=" + valuePathgqlEntryPoint);
+    runner.withArguments(task, TYPE + valueEntryPoint, "--pathgql=" + valuePathgqlEntryPoint);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     assertTrue(
@@ -370,10 +492,10 @@ public class PluginCleanFunctionalTest {
   @Test
   public void canRunTaskGenerateDrivenAdapterRSocketRequesterCase() {
     canRunTaskGenerateStructureReactiveProject();
-    String task = "generateDrivenAdapter";
+    String task = GENERATE_DRIVEN_ADAPTER;
     String valueDrivenAdapter = "rsocket";
 
-    runner.withArguments(task, "--type=" + valueDrivenAdapter);
+    runner.withArguments(task, TYPE + valueDrivenAdapter);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     assertTrue(
@@ -398,10 +520,10 @@ public class PluginCleanFunctionalTest {
   @Test
   public void canRunTaskGenerateEntryPointRSocketResponderCase() {
     canRunTaskGenerateStructureReactiveProject();
-    String task = "generateEntryPoint";
+    String task = GENERATE_ENTRY_POINT;
     String valueDrivenAdapter = "rsocket";
 
-    runner.withArguments(task, "--type=" + valueDrivenAdapter);
+    runner.withArguments(task, TYPE + valueDrivenAdapter);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     assertTrue(
@@ -421,19 +543,18 @@ public class PluginCleanFunctionalTest {
   @Test
   public void canRunTaskGenerateEntryPointCaseWithParameters() {
     canRunTaskGenerateStructureWithOutParameters();
-    String task = "generateEntryPoint";
-    String valueEntryPoint = "restmvc";
+    String task = GENERATE_ENTRY_POINT;
+    String valueEntryPoint = RESTMVC;
 
-    runner.withArguments(task, "--type=" + valueEntryPoint);
+    runner.withArguments(task, TYPE + valueEntryPoint);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     assertTrue(
         new File(
-                "build/functionalTest/infrastructure/entry-points/api-rest/src/main/java/co/com/bancolombia/api/ApiRest.java")
+                BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_SRC_MAIN_JAVA_CO_COM_BANCOLOMBIA_API_API_REST_JAVA)
             .exists());
     assertTrue(
-        new File("build/functionalTest/infrastructure/entry-points/api-rest/build.gradle")
-            .exists());
+        new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_BUILD_GRADLE).exists());
 
     assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
   }
@@ -441,32 +562,31 @@ public class PluginCleanFunctionalTest {
   @Test
   public void canRunTaskGenerateRestMvcEntryPointCaseWithUndertowServer() throws IOException {
     canRunTaskGenerateStructureWithOutParameters();
-    String task = "generateEntryPoint";
-    String valueEntryPoint = "restmvc";
+    String task = GENERATE_ENTRY_POINT;
+    String valueEntryPoint = RESTMVC;
     String server = "undertow";
 
-    runner.withArguments(task, "--type=" + valueEntryPoint, "--server=" + server);
+    runner.withArguments(task, TYPE + valueEntryPoint, SERVER + server);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     assertTrue(
         new File(
-                "build/functionalTest/infrastructure/entry-points/api-rest/src/main/java/co/com/bancolombia/api/ApiRest.java")
+                BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_SRC_MAIN_JAVA_CO_COM_BANCOLOMBIA_API_API_REST_JAVA)
             .exists());
     assertTrue(
-        new File("build/functionalTest/infrastructure/entry-points/api-rest/build.gradle")
-            .exists());
+        new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_BUILD_GRADLE).exists());
 
     assertTrue(
         FileUtils.readFileToString(
-                new File("build/functionalTest/applications/app-service/build.gradle"),
+                new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_BUILD_GRADLE),
                 StandardCharsets.UTF_8)
             .contains("spring-boot-starter-undertow"));
     assertTrue(
         FileUtils.readFileToString(
-                new File("build/functionalTest/applications/app-service/build.gradle"),
+                new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_BUILD_GRADLE),
                 StandardCharsets.UTF_8)
             .contains(
-                "compile.exclude group: \"org.springframework.boot\", module:\"spring-boot-starter-tomcat\""));
+                COMPILE_EXCLUDE_GROUP_ORG_SPRINGFRAMEWORK_BOOT_MODULE_SPRING_BOOT_STARTER_TOMCAT));
 
     assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
   }
@@ -474,32 +594,31 @@ public class PluginCleanFunctionalTest {
   @Test
   public void canRunTaskGenerateRestMvcEntryPointCaseWithJettyServer() throws IOException {
     canRunTaskGenerateStructureWithOutParameters();
-    String task = "generateEntryPoint";
-    String valueEntryPoint = "restmvc";
+    String task = GENERATE_ENTRY_POINT;
+    String valueEntryPoint = RESTMVC;
     String server = "jetty";
 
-    runner.withArguments(task, "--type=" + valueEntryPoint, "--server=" + server);
+    runner.withArguments(task, TYPE + valueEntryPoint, SERVER + server);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     assertTrue(
         new File(
-                "build/functionalTest/infrastructure/entry-points/api-rest/src/main/java/co/com/bancolombia/api/ApiRest.java")
+                BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_SRC_MAIN_JAVA_CO_COM_BANCOLOMBIA_API_API_REST_JAVA)
             .exists());
     assertTrue(
-        new File("build/functionalTest/infrastructure/entry-points/api-rest/build.gradle")
-            .exists());
+        new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_BUILD_GRADLE).exists());
 
     assertTrue(
         FileUtils.readFileToString(
-                new File("build/functionalTest/applications/app-service/build.gradle"),
+                new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_BUILD_GRADLE),
                 StandardCharsets.UTF_8)
             .contains("spring-boot-starter-jetty"));
     assertTrue(
         FileUtils.readFileToString(
-                new File("build/functionalTest/applications/app-service/build.gradle"),
+                new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_BUILD_GRADLE),
                 StandardCharsets.UTF_8)
             .contains(
-                "compile.exclude group: \"org.springframework.boot\", module:\"spring-boot-starter-tomcat\""));
+                COMPILE_EXCLUDE_GROUP_ORG_SPRINGFRAMEWORK_BOOT_MODULE_SPRING_BOOT_STARTER_TOMCAT));
 
     assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
   }
@@ -507,27 +626,26 @@ public class PluginCleanFunctionalTest {
   @Test
   public void canRunTaskGenerateEntryPointCaseWithTomcatServer() throws IOException {
     canRunTaskGenerateStructureWithOutParameters();
-    String task = "generateEntryPoint";
-    String valueEntryPoint = "restmvc";
+    String task = GENERATE_ENTRY_POINT;
+    String valueEntryPoint = RESTMVC;
     String server = "tomcat";
 
-    runner.withArguments(task, "--type=" + valueEntryPoint, "--server=" + server);
+    runner.withArguments(task, TYPE + valueEntryPoint, SERVER + server);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     assertTrue(
         new File(
-                "build/functionalTest/infrastructure/entry-points/api-rest/src/main/java/co/com/bancolombia/api/ApiRest.java")
+                BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_SRC_MAIN_JAVA_CO_COM_BANCOLOMBIA_API_API_REST_JAVA)
             .exists());
     assertTrue(
-        new File("build/functionalTest/infrastructure/entry-points/api-rest/build.gradle")
-            .exists());
+        new File(BUILD_FUNCTIONAL_TEST_INFRASTRUCTURE_ENTRY_POINTS_API_REST_BUILD_GRADLE).exists());
 
     assertFalse(
         FileUtils.readFileToString(
-                new File("build/functionalTest/applications/app-service/build.gradle"),
+                new File(BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_BUILD_GRADLE),
                 StandardCharsets.UTF_8)
             .contains(
-                "compile.exclude group: \"org.springframework.boot\", module:\"spring-boot-starter-tomcat\""));
+                COMPILE_EXCLUDE_GROUP_ORG_SPRINGFRAMEWORK_BOOT_MODULE_SPRING_BOOT_STARTER_TOMCAT));
 
     assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
   }
@@ -535,10 +653,10 @@ public class PluginCleanFunctionalTest {
   @Test
   public void canRunTaskGenerateDrivenAdapterWithParameters() {
     canRunTaskGenerateStructureWithOutParameters();
-    String task = "generateDrivenAdapter";
+    String task = GENERATE_DRIVEN_ADAPTER;
     String valueDrivenAdapter = "jpa";
 
-    runner.withArguments(task, "--type=" + valueDrivenAdapter);
+    runner.withArguments(task, TYPE + valueDrivenAdapter);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
 
@@ -559,7 +677,7 @@ public class PluginCleanFunctionalTest {
             .exists());
     assertTrue(
         new File(
-                "build/functionalTest/applications/app-service/src/main/java/co/com/bancolombia/config/JpaConfig.java")
+                "build/functionalTest/infrastructure/driven-adapters/jpa-repository/src/main/java/co/com/bancolombia/jpa/config/JpaConfig.java")
             .exists());
 
     assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
@@ -568,10 +686,10 @@ public class PluginCleanFunctionalTest {
   @Test
   public void canRunTaskGenerateDrivenAdapterEventBusTest() {
     canRunTaskGenerateStructureReactiveProject();
-    String task = "generateDrivenAdapter";
-    String valueDrivenAdapter = "ASYNCEVENTBUS";
+    String task = GENERATE_DRIVEN_ADAPTER;
+    String valueDrivenAdapter = ASYNCEVENTBUS;
 
-    runner.withArguments(task, "--type=" + valueDrivenAdapter);
+    runner.withArguments(task, TYPE + valueDrivenAdapter);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
 
@@ -594,24 +712,61 @@ public class PluginCleanFunctionalTest {
     assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
   }
 
-  @Test(expected = Exception.class)
+  @Test
   public void shouldFailTaskGenerateDrivenAdapterEventBusForNonReactiveTest() {
-    canRunTaskGenerateStructureWithOutParameters();
-    String task = "generateDrivenAdapter";
-    String valueDrivenAdapter = "ASYNCEVENTBUS";
-
-    runner.withArguments(task, "--type=" + valueDrivenAdapter);
+    canRunTaskGenerateStructureImperative();
+    String task = GENERATE_DRIVEN_ADAPTER;
+    String valueDrivenAdapter = ASYNCEVENTBUS;
+    runner.withArguments(task, TYPE + valueDrivenAdapter);
     runner.withProjectDir(projectDir);
-    BuildResult result = runner.build();
+
+    try {
+      runner.build();
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("This module is only available for reactive projects"));
+    }
+  }
+
+  @Test
+  public void shouldGenerateDrivenAdapterSecretsForVaultInReactiveTest() throws IOException {
+    canRunTaskGenerateStructureWithOutParameters();
+    String task = GENERATE_DRIVEN_ADAPTER;
+    String valueDrivenAdapter = SECRETS;
+    runner.withArguments(task, TYPE + valueDrivenAdapter, "--secrets-backend=VAULT");
+    runner.withProjectDir(projectDir);
+    runner.build();
+
+    assertTrue(
+        FileUtils.readFileToString(
+                new File(BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_BUILD_GRADLE),
+                StandardCharsets.UTF_8)
+            .contains("implementation 'com.github.bancolombia:vault-async:"));
+  }
+
+  @Test
+  public void shouldGenerateDrivenAdapterSecretsForAWSInReactiveTest() throws IOException {
+    canRunTaskGenerateStructureWithOutParameters();
+    String task = GENERATE_DRIVEN_ADAPTER;
+    String valueDrivenAdapter = SECRETS;
+    runner.withArguments(task, TYPE + valueDrivenAdapter, "--secrets-backend=AWS_SECRETS_MANAGER");
+    runner.withProjectDir(projectDir);
+    runner.build();
+
+    assertTrue(
+        FileUtils.readFileToString(
+                new File(BUILD_FUNCTIONAL_TEST_APPLICATIONS_APP_SERVICE_BUILD_GRADLE),
+                StandardCharsets.UTF_8)
+            .contains("implementation 'com.github.bancolombia:aws-secrets-manager-async"));
+    assertThrows(Exception.class, () -> runner.build());
   }
 
   @Test
   public void canRunTaskGenerateEntryPointEventHandlerTest() {
     canRunTaskGenerateStructureReactiveProject();
-    String task = "generateEntryPoint";
+    String task = GENERATE_ENTRY_POINT;
     String valueDrivenAdapter = "ASYNCEVENTHANDLER";
 
-    runner.withArguments(task, "--type=" + valueDrivenAdapter);
+    runner.withArguments(task, TYPE + valueDrivenAdapter);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
 
@@ -643,9 +798,9 @@ public class PluginCleanFunctionalTest {
   public void canRunTaskGenerateDrivenAdapterR2dbcPostgreSQLTest() {
     canRunTaskGenerateStructureReactiveProject();
 
-    String task = "generateDrivenAdapter";
+    String task = GENERATE_DRIVEN_ADAPTER;
     String valueDrivenAdapter = "R2DBC";
-    runner.withArguments(task, "--type=" + valueDrivenAdapter);
+    runner.withArguments(task, TYPE + valueDrivenAdapter);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
 
@@ -655,15 +810,15 @@ public class PluginCleanFunctionalTest {
             .exists());
     assertTrue(
         new File(
-                "build/functionalTest/infrastructure/driven-adapters/r2dbc-postgresql/src/main/java/co/com/bancolombia/config/PostgreSQLConnectionPool.java")
+                "build/functionalTest/infrastructure/driven-adapters/r2dbc-postgresql/src/main/java/co/com/bancolombia/r2dbc/config/PostgreSQLConnectionPool.java")
             .exists());
     assertTrue(
         new File(
-                "build/functionalTest/infrastructure/driven-adapters/r2dbc-postgresql/src/main/java/co/com/bancolombia/config/PostgresqlConnectionProperties.java")
+                "build/functionalTest/infrastructure/driven-adapters/r2dbc-postgresql/src/main/java/co/com/bancolombia/r2dbc/config/PostgresqlConnectionProperties.java")
             .exists());
     assertTrue(
         new File(
-                "build/functionalTest/infrastructure/driven-adapters/r2dbc-postgresql/src/main/java/co/com/bancolombia/MyReactiveRepository.java")
+                "build/functionalTest/infrastructure/driven-adapters/r2dbc-postgresql/src/main/java/co/com/bancolombia/r2dbc/MyReactiveRepository.java")
             .exists());
     assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
   }
@@ -672,9 +827,9 @@ public class PluginCleanFunctionalTest {
   public void canRunTaskGenerateDrivenAdapterKmsTest() {
     canRunTaskGenerateStructureReactiveProject();
 
-    String task = "generateDrivenAdapter";
+    String task = GENERATE_DRIVEN_ADAPTER;
     String valueDrivenAdapter = "KMS";
-    runner.withArguments(task, "--type=" + valueDrivenAdapter);
+    runner.withArguments(task, TYPE + valueDrivenAdapter);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
 
@@ -701,9 +856,9 @@ public class PluginCleanFunctionalTest {
   public void canRunTaskGenerateDrivenAdapterS3Test() {
     canRunTaskGenerateStructureWithOutParameters();
 
-    String task = "generateDrivenAdapter";
+    String task = GENERATE_DRIVEN_ADAPTER;
     String valueDrivenAdapter = "S3";
-    runner.withArguments(task, "--type=" + valueDrivenAdapter);
+    runner.withArguments(task, TYPE + valueDrivenAdapter);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
 
@@ -736,7 +891,7 @@ public class PluginCleanFunctionalTest {
 
     String task = "generateHelper";
     String valueDrivenAdapter = "S3Helper";
-    runner.withArguments(task, "--name=" + valueDrivenAdapter);
+    runner.withArguments(task, NAME + valueDrivenAdapter);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
 
@@ -760,7 +915,7 @@ public class PluginCleanFunctionalTest {
     String task = "generatePipeline";
     String valuePipeline = "AZURE";
 
-    runner.withArguments(task, "--type=" + valuePipeline);
+    runner.withArguments(task, TYPE + valuePipeline);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
 
@@ -776,7 +931,7 @@ public class PluginCleanFunctionalTest {
     String task = "generatePipeline";
     String valuePipeline = "GITHUB";
 
-    runner.withArguments(task, "--type=" + valuePipeline);
+    runner.withArguments(task, TYPE + valuePipeline);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
 
@@ -791,7 +946,7 @@ public class PluginCleanFunctionalTest {
   @Test
   public void canRunTaskValidateStructureWithOutParameters() {
     canRunTaskGenerateStructureWithOutParametersValidator();
-    String task = "validateStructure";
+    String task = VALIDATE_STRUCTURE;
 
     runner.withArguments(task);
     runner.withProjectDir(projectDir);
@@ -816,7 +971,7 @@ public class PluginCleanFunctionalTest {
     // Verify the result
     assertTrue(result.getOutput().contains("cleanArchitecture"));
     assertTrue(result.getOutput().contains("generateModel"));
-    assertTrue(result.getOutput().contains("validateStructure"));
+    assertTrue(result.getOutput().contains(VALIDATE_STRUCTURE));
 
     assertEquals(result.task(":tasks").getOutcome(), TaskOutcome.SUCCESS);
   }
@@ -839,7 +994,7 @@ public class PluginCleanFunctionalTest {
   public void canValidateImperativeProject() {
     canRunTaskGenerateStructureWithOutParametersValidator();
     // Act
-    runner.withArguments("validateStructure");
+    runner.withArguments(VALIDATE_STRUCTURE);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     // Assert
@@ -850,46 +1005,46 @@ public class PluginCleanFunctionalTest {
   public void canValidateReactiveProject() {
     canRunTaskGenerateStructureReactiveProject();
     // Act
-    runner.withArguments("validateStructure");
+    runner.withArguments(VALIDATE_STRUCTURE);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
     // Assert
     assertEquals(result.task(":validateStructure").getOutcome(), TaskOutcome.SUCCESS);
   }
 
-  @Test(expected = Exception.class)
+  @Test
   public void validateStructureReactiveWithInvalidModel() throws IOException {
     canRunTaskGenerateStructureReactiveProject();
     writeString(
-        new File("build/functionalTest/domain/model/build.gradle"),
+        new File(BUILD_FUNCTIONAL_TEST_DOMAIN_MODEL_BUILD_GRADLE),
         "implementation 'org.springframework.boot:spring-boot-starter'");
 
     // Act
-    runner.withArguments("validateStructure");
+    runner.withArguments(VALIDATE_STRUCTURE);
     runner.withProjectDir(projectDir);
-    runner.build();
+    assertThrows(Exception.class, () -> runner.build());
   }
 
-  @Test(expected = Exception.class)
+  @Test
   public void validateStructureReactiveWithInvalidUseCase() throws IOException {
     canRunTaskGenerateStructureReactiveProject();
     writeString(
-        new File("build/functionalTest/domain/usecase/build.gradle"),
+        new File(BUILD_FUNCTIONAL_TEST_DOMAIN_USECASE_BUILD_GRADLE),
         "implementation 'org.springframework.boot:spring-boot-starter'");
 
     // Act
-    runner.withArguments("validateStructure");
+    runner.withArguments(VALIDATE_STRUCTURE);
     runner.withProjectDir(projectDir);
-    runner.build();
+    assertThrows(Exception.class, () -> runner.build());
   }
 
   @Test
   public void shouldGenerateMQEntryPoint() {
     canRunTaskGenerateStructureReactiveProject();
-    String task = "generateEntryPoint";
+    String task = GENERATE_ENTRY_POINT;
     String type = "MQ";
 
-    runner.withArguments(task, "--type=" + type);
+    runner.withArguments(task, TYPE + type);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
 
@@ -906,10 +1061,10 @@ public class PluginCleanFunctionalTest {
   @Test
   public void shouldGenerateMQDrivenAdapter() {
     canRunTaskGenerateStructureReactiveProject();
-    String task = "generateDrivenAdapter";
+    String task = GENERATE_DRIVEN_ADAPTER;
     String type = "MQ";
 
-    runner.withArguments(task, "--type=" + type);
+    runner.withArguments(task, TYPE + type);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
 
@@ -926,10 +1081,10 @@ public class PluginCleanFunctionalTest {
   @Test
   public void shouldGenerateMQDrivenAdapterNoReactive() {
     canRunTaskGenerateStructureWithOutParameters();
-    String task = "generateDrivenAdapter";
+    String task = GENERATE_DRIVEN_ADAPTER;
     String type = "MQ";
 
-    runner.withArguments(task, "--type=" + type);
+    runner.withArguments(task, TYPE + type);
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
 
@@ -939,6 +1094,26 @@ public class PluginCleanFunctionalTest {
     assertTrue(
         new File(
                 "build/functionalTest/infrastructure/driven-adapters/mq-sender/src/main/java/co/com/bancolombia/mq/sender/SampleMQMessageSender.java")
+            .exists());
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void shouldGenerateSQSEntryPoint() {
+    canRunTaskGenerateStructureReactiveProject();
+    String task = GENERATE_ENTRY_POINT;
+    String type = "SQS";
+
+    runner.withArguments(task, TYPE + type);
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+
+    assertTrue(
+        new File("build/functionalTest/infrastructure/entry-points/sqs-listener/build.gradle")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/entry-points/sqs-listener/src/main/java/co/com/bancolombia/sqs/listener/SQSProcessor.java")
             .exists());
     assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
   }
@@ -964,6 +1139,385 @@ public class PluginCleanFunctionalTest {
     runner.withArguments(task, "--dependencies=org.mockito:mockito-core org.projectlombok:lombok");
     runner.withProjectDir(projectDir);
     BuildResult result = runner.build();
+
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void canRunTaskGenerateDrivenAdapterKtorClient() throws IOException {
+    canRunTaskGenerateStructureKotlinWithOutParameters();
+    String task = "generateDrivenAdapter";
+    String type = "KTOR";
+
+    runner.withArguments(task, "--type=" + type);
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/ktor-client/src/main/kotlin/co/com/bancolombia/client/KtorClient.kt")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/ktor-client/src/main/kotlin/co/com/bancolombia/client/config/KtorConfig.kt")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/infrastructure/driven-adapters/ktor-client/build.gradle.kts")
+            .exists());
+
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void canRunTaskGenerateStructureKotlinWithOutParameters() throws IOException {
+    initKotlin();
+    String task = "ca";
+
+    runner.withArguments(task, "--language=" + "KOTLIN");
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+    // Verify the result
+    assertTrue(new File("build/functionalTest/README.md").exists());
+    assertTrue(new File("build/functionalTest/.gitignore").exists());
+    assertTrue(new File("build/functionalTest/build.gradle.kts").exists());
+    assertTrue(new File("build/functionalTest/lombok.config").exists());
+    assertTrue(new File("build/functionalTest/settings.gradle.kts").exists());
+
+    assertTrue(new File("build/functionalTest/infrastructure/driven-adapters/").exists());
+    assertTrue(new File("build/functionalTest/infrastructure/entry-points").exists());
+    assertTrue(new File("build/functionalTest/infrastructure/helpers").exists());
+
+    assertTrue(
+        new File("build/functionalTest/domain/model/src/main/kotlin/co/com/bancolombia/model")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/domain/model/src/test/kotlin/co/com/bancolombia/model")
+            .exists());
+    assertTrue(new File("build/functionalTest/domain/model/build.gradle.kts").exists());
+    assertTrue(
+        new File("build/functionalTest/domain/usecase/src/main/kotlin/co/com/bancolombia/usecase")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/domain/usecase/src/test/kotlin/co/com/bancolombia/usecase")
+            .exists());
+    assertTrue(new File("build/functionalTest/domain/usecase/build.gradle.kts").exists());
+
+    assertTrue(new File("build/functionalTest/applications/app-service/build.gradle.kts").exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/applications/app-service/src/main/kotlin/co/com/bancolombia/MainApplication.kt")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/applications/app-service/src/main/kotlin/co/com/bancolombia/config/UseCasesConfig.kt")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/applications/app-service/src/main/kotlin/co/com/bancolombia/config")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/applications/app-service/src/main/resources/application.yaml")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/applications/app-service/src/main/resources/log4j2.properties")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/applications/app-service/src/test/kotlin/co/com/bancolombia")
+            .exists());
+
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void canRunTaskGenerateStructureKotlinReactive() throws IOException {
+    initKotlin();
+    String task = "ca";
+
+    runner.withArguments(task, "--type=reactive", "--language=" + "KOTLIN");
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+    // Verify the result
+    assertTrue(new File("build/functionalTest/README.md").exists());
+    assertTrue(new File("build/functionalTest/.gitignore").exists());
+    assertTrue(new File("build/functionalTest/build.gradle.kts").exists());
+    assertTrue(new File("build/functionalTest/lombok.config").exists());
+    assertTrue(new File("build/functionalTest/settings.gradle.kts").exists());
+
+    assertTrue(new File("build/functionalTest/infrastructure/driven-adapters/").exists());
+    assertTrue(new File("build/functionalTest/infrastructure/entry-points").exists());
+    assertTrue(new File("build/functionalTest/infrastructure/helpers").exists());
+
+    assertTrue(
+        new File("build/functionalTest/domain/model/src/main/kotlin/co/com/bancolombia/model")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/domain/model/src/test/kotlin/co/com/bancolombia/model")
+            .exists());
+    assertTrue(new File("build/functionalTest/domain/model/build.gradle.kts").exists());
+    assertTrue(
+        new File("build/functionalTest/domain/usecase/src/main/kotlin/co/com/bancolombia/usecase")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/domain/usecase/src/test/kotlin/co/com/bancolombia/usecase")
+            .exists());
+    assertTrue(new File("build/functionalTest/domain/usecase/build.gradle.kts").exists());
+
+    assertTrue(new File("build/functionalTest/applications/app-service/build.gradle.kts").exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/applications/app-service/src/main/kotlin/co/com/bancolombia/MainApplication.kt")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/applications/app-service/src/main/kotlin/co/com/bancolombia/config/UseCasesConfig.kt")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/applications/app-service/src/main/kotlin/co/com/bancolombia/config")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/applications/app-service/src/main/resources/application.yaml")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/applications/app-service/src/main/resources/log4j2.properties")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/applications/app-service/src/test/kotlin/co/com/bancolombia")
+            .exists());
+
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void canRunTaskGenerateDynamoDBDrivenAdapterInKotlin() throws IOException {
+    canRunTaskGenerateStructureKotlinWithOutParameters();
+    String task = "generateDrivenAdapter";
+    String type = "DYNAMODB";
+
+    runner.withArguments(task, "--type=" + type);
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/dynamo-db/src/main/kotlin/co/com/bancolombia/dynamodb/DynamoDBTemplateAdapter.kt")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/dynamo-db/src/main/kotlin/co/com/bancolombia/dynamodb/config/DynamoDBConfig.kt")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/infrastructure/driven-adapters/dynamo-db/build.gradle.kts")
+            .exists());
+
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void canRunTaskGenerateDynamoDBDrivenAdapterInKotlinReactive() throws IOException {
+    canRunTaskGenerateStructureKotlinReactive();
+    String task = "generateDrivenAdapter";
+    String type = "DYNAMODB";
+
+    runner.withArguments(task, "--type=" + type);
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/dynamo-db/src/main/kotlin/co/com/bancolombia/dynamodb/DynamoDBTemplateAdapter.kt")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/dynamo-db/src/main/kotlin/co/com/bancolombia/dynamodb/config/DynamoDBConfig.kt")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/infrastructure/driven-adapters/dynamo-db/build.gradle.kts")
+            .exists());
+
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void shouldGenerateDynamoDBDrivenAdapterInJava() {
+    canRunTaskGenerateStructureWithOutParameters();
+    String task = "generateDrivenAdapter";
+    String type = "DYNAMODB";
+
+    runner.withArguments(task, "--type=" + type);
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/dynamo-db/src/main/java/co/com/bancolombia/dynamodb/DynamoDBTemplateAdapter.java")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/dynamo-db/src/main/java/co/com/bancolombia/dynamodb/ModelEntity.java")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/dynamo-db/src/main/java/co/com/bancolombia/dynamodb/config/DynamoDBConfig.java")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/infrastructure/driven-adapters/dynamo-db/build.gradle")
+            .exists());
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void shouldGenerateDynamoDBDrivenAdapterInJavaReactive() {
+    canRunTaskGenerateStructureReactiveProject();
+    String task = "generateDrivenAdapter";
+    String type = "DYNAMODB";
+
+    runner.withArguments(task, "--type=" + type);
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/dynamo-db/src/main/java/co/com/bancolombia/dynamodb/DynamoDBTemplateAdapter.java")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/dynamo-db/src/main/java/co/com/bancolombia/dynamodb/ModelEntity.java")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/dynamo-db/src/main/java/co/com/bancolombia/dynamodb/config/DynamoDBConfig.java")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/infrastructure/driven-adapters/dynamo-db/build.gradle")
+            .exists());
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void shouldGenerateBinStashDrivenAdapterInJavaReactive() {
+    canRunTaskGenerateStructureReactiveProject();
+    String task = "generateDrivenAdapter";
+    String type = "BINSTASH";
+
+    runner.withArguments(task, "--type=" + type);
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/bin-stash/src/main/java/co/com/bancolombia/binstash/config/BinStashCacheConfig.java")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/infrastructure/driven-adapters/bin-stash/build.gradle")
+            .exists());
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void shouldGenerateBinStashDrivenAdapterInJavaNoReactive() {
+    canRunTaskGenerateStructureWithOutParameters();
+    String task = "generateDrivenAdapter";
+    String type = "BINSTASH";
+
+    runner.withArguments(task, "--type=" + type);
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/bin-stash/src/main/java/co/com/bancolombia/binstash/config/BinStashCacheConfig.java")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/infrastructure/driven-adapters/bin-stash/build.gradle")
+            .exists());
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void shouldGenerateBinStashDrivenAdapterInKotlin() throws IOException {
+    canRunTaskGenerateStructureKotlinWithOutParameters();
+    String task = "generateDrivenAdapter";
+    String type = "BINSTASH";
+
+    runner.withArguments(task, "--type=" + type);
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/bin-stash/src/main/kotlin/co/com/bancolombia/binstash/config/BinStashCacheConfig.kt")
+            .exists());
+    assertTrue(
+        new File("build/functionalTest/infrastructure/driven-adapters/bin-stash/build.gradle.kts")
+            .exists());
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void shouldGenerateBinStashDrivenAdapter() {
+    canRunTaskGenerateStructureWithOutLombok();
+    String task = GENERATE_DRIVEN_ADAPTER;
+    String type = "BINSTASH";
+
+    runner.withArguments(task, TYPE + type);
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+
+    assertTrue(
+        new File("build/functionalTest/infrastructure/driven-adapters/bin-stash/build.gradle")
+            .exists());
+    assertTrue(
+        new File(
+                "build/functionalTest/infrastructure/driven-adapters/bin-stash/src/main/java/co/com/bancolombia/binstash/config/BinStashCacheConfig.java")
+            .exists());
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void shouldSetTheAnalyticsStatate() throws IOException {
+    canRunTaskGenerateStructureWithOutLombok();
+    String task = "analytics";
+
+    runner.withArguments(task, "--enabled=true");
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+
+    assertTrue(
+        FileUtils.readFileToString(
+                new File("build/functionalTest/gradle.properties"), StandardCharsets.UTF_8)
+            .contains("analytics=true"));
+    assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  public void shouldGenerateJarWithSpecificName() {
+    runner.withArguments("ca", "--type=reactive", "--name=MagicProjectName");
+    runner.withProjectDir(projectDir);
+    runner.build();
+
+    // Act
+    runner.withArguments("build");
+    runner.withProjectDir(projectDir);
+    runner.build();
+
+    assertTrue(
+        new File("build/functionalTest/applications/app-service/build/libs/MagicProjectName.jar")
+            .exists());
+  }
+
+  @Test
+  public void canRunTaskGeneratePerformanceTest() {
+    canRunTaskGenerateStructureWithOutParameters();
+    String task = "generatePerformanceTest";
+    String valuePerformanceType = "JMETER";
+
+    runner.withArguments(task, TYPE + valuePerformanceType);
+    runner.withProjectDir(projectDir);
+    BuildResult result = runner.build();
+
+    assertTrue(new File("build/functionalTest/performance-test/README.md").exists());
 
     assertEquals(result.task(":" + task).getOutcome(), TaskOutcome.SUCCESS);
   }
